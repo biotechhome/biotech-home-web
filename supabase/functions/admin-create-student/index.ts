@@ -16,9 +16,11 @@
 //     with auth.getUser(), which also works with the new API keys.
 //
 // Request  (POST, JSON):
-//   { "student_code": "ST1001", "full_name": "...", "mobile": "017XXXXXXXX",
-//     "pin": "123456", "batch_id": "<uuid, optional>" }
-// Response: 201 { "id": "<uuid>", "student_code": "ST1001" }  or  { "error": "..." }
+//   { "session_year": 2028, "full_name": "...", "mobile": "017XXXXXXXX", "batch_id": "<uuid, optional>",
+//     "class_time": "২টা (optional)", "has_photo": true,
+//     "fee": { "month": "November", "year": 2026, "status": "paid|due|partial", "amount": 500 } (optional) }
+// The student ID (auto-increment) and the 6-digit PIN are generated HERE.
+// Response: 201 { "id", "student_code", "pin" }  (the PIN is shown once, never stored in clear)
 // =============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -29,7 +31,7 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5500",
 ];
 
-const CODE_RE = /^[A-Za-z0-9-]{3,20}$/;
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MOBILE_RE = /^01[3-9][0-9]{8}$/;
 const PIN_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -88,36 +90,72 @@ Deno.serve(async (req: Request) => {
     return reply(req, 400, { error: "Invalid JSON" });
   }
 
-  const studentCode = String(body.student_code ?? "").trim().toUpperCase();
+  const sessionYear = Number(body.session_year);
   const fullName = String(body.full_name ?? "").trim();
   const mobile = String(body.mobile ?? "").trim();
-  const pin = String(body.pin ?? "").trim();
   const batchId = body.batch_id == null || body.batch_id === "" ? null : String(body.batch_id);
+  const classTime = String(body.class_time ?? "").trim().slice(0, 20) || null;
+  const hasPhoto = body.has_photo === true;
+  const fee = (body.fee && typeof body.fee === "object") ? body.fee as Record<string, unknown> : null;
 
-  if (!CODE_RE.test(studentCode)) return reply(req, 400, { error: "Student ID must be 3-20 letters, digits or hyphens" });
+  if (!Number.isInteger(sessionYear) || sessionYear < 2020 || sessionYear > 2100) return reply(req, 400, { error: "Invalid session" });
   if (fullName.length < 2 || fullName.length > 80) return reply(req, 400, { error: "Name must be 2-80 characters" });
   if (!MOBILE_RE.test(mobile)) return reply(req, 400, { error: "Mobile must be 11 digits, like 01712345678" });
-  if (!PIN_RE.test(pin)) return reply(req, 400, { error: "PIN must be exactly 6 digits" });
   if (batchId !== null && !UUID_RE.test(batchId)) return reply(req, 400, { error: "Invalid batch id" });
-
-  // ---- 4. Create the login account -------------------------------------------
-  const email = `${studentCode.toLowerCase()}@s.biotechhome.invalid`;
-  const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email,
-    password: mobile + pin,
-    email_confirm: true,
-    // app_metadata can only be written by server code: this flag tells the
-    // sign-up trigger to leave profile creation to this function.
-    app_metadata: { created_by_admin: true, student_type: "offline" },
-    user_metadata: { full_name: fullName },
-  });
-  if (createErr || !created?.user) {
-    const taken = /already|registered|exists/i.test(createErr?.message ?? "");
-    return reply(req, taken ? 409 : 400, {
-      error: taken ? "This student ID is already registered" : "Could not create the account",
-    });
+  let feeRow: { fee_month: string; fee_year: number; status: string; amount_bdt: number | null } | null = null;
+  if (fee) {
+    const st = String(fee.status ?? "").toLowerCase();
+    const yr = Number(fee.year);
+    const amt = fee.amount == null || fee.amount === "" ? null : Number(fee.amount);
+    if (!MONTHS.includes(String(fee.month)) || !["paid", "due", "partial"].includes(st) ||
+        !Number.isInteger(yr) || yr < 2020 || yr > 2100 || (amt !== null && (!Number.isInteger(amt) || amt < 0))) {
+      return reply(req, 400, { error: "Invalid fee details" });
+    }
+    feeRow = { fee_month: String(fee.month), fee_year: yr, status: st, amount_bdt: amt };
   }
-  const newId = created.user.id;
+
+  // Duplicate rule: the same mobile may appear in different batches (e.g. siblings),
+  // but not twice in the SAME batch.
+  if (batchId) {
+    const { data: dup } = await admin
+      .from("batch_members")
+      .select("student_id, profiles!inner(mobile)")
+      .eq("batch_id", batchId)
+      .eq("profiles.mobile", mobile)
+      .limit(1);
+    if (dup && dup.length > 0) {
+      return reply(req, 409, { error: "A student with this mobile number is already in this batch" });
+    }
+  }
+
+  // PIN: 6 random digits, generated with a cryptographic source.
+  const rnd = new Uint32Array(1);
+  crypto.getRandomValues(rnd);
+  const pin = String(rnd[0] % 1000000).padStart(6, "0");
+
+  // Next student number for this session (auto-increment). Retry if it is somehow taken.
+  let studentCode = "";
+  let appNo = 0;
+  let newId = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data: no, error: noErr } = await admin.rpc("next_student_no", { p_session: sessionYear });
+    if (noErr || !no) return reply(req, 400, { error: "This session is not set up" });
+    appNo = Number(no);
+    studentCode = `${String(sessionYear).slice(2)}-${appNo}`;
+    const email = `${studentCode.toLowerCase()}@s.biotechhome.invalid`;
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      password: mobile + pin,
+      email_confirm: true,
+      app_metadata: { created_by_admin: true, student_type: "offline" },
+      user_metadata: { full_name: fullName },
+    });
+    if (created?.user) { newId = created.user.id; break; }
+    if (!/already|registered|exists/i.test(createErr?.message ?? "")) {
+      return reply(req, 400, { error: "Could not create the account" });
+    }
+  }
+  if (!newId) return reply(req, 409, { error: "Could not find a free student ID, try again" });
 
   // ---- 5. Create the profile (undo the account if this fails) ----------------
   const { error: profileErr } = await admin.from("profiles").insert({
@@ -125,25 +163,28 @@ Deno.serve(async (req: Request) => {
     role: "student",
     student_type: "offline",
     student_code: studentCode,
+    session_year: sessionYear,
+    app_id: appNo,
     full_name: fullName,
     mobile,
+    class_time: classTime,
+    photo_path: hasPhoto ? `${newId}/photo.jpg` : null,
     status: "active",
   });
   if (profileErr) {
     await admin.auth.admin.deleteUser(newId);
-    const dup = profileErr.code === "23505";
-    return reply(req, dup ? 409 : 400, {
-      error: dup ? "This student ID or mobile number is already registered" : "Could not save the student",
-    });
+    return reply(req, 400, { error: "Could not save the student" });
   }
 
-  // ---- 6. Optional: add to a batch -------------------------------------------
+  // ---- 6. Optional: batch and first fee record -------------------------------
+  const warnings: string[] = [];
   if (batchId) {
     const { error: batchErr } = await admin.from("batch_members").insert({ batch_id: batchId, student_id: newId });
-    if (batchErr) {
-      return reply(req, 201, { id: newId, student_code: studentCode, warning: "Student created, but the batch could not be set" });
-    }
+    if (batchErr) warnings.push("batch");
   }
-
-  return reply(req, 201, { id: newId, student_code: studentCode });
+  if (feeRow) {
+    const { error: feeErr } = await admin.from("fee_payments").insert({ student_id: newId, ...feeRow });
+    if (feeErr) warnings.push("fee");
+  }
+  return reply(req, 201, { id: newId, student_code: studentCode, pin, warnings });
 });

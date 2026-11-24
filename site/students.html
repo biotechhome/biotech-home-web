@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>শিক্ষার্থী তালিকা — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px;max-width:1400px"><div class="pagehead"><h1>সকল শিক্ষার্থী</h1><p class="sub"><a href="admin.html">← অ্যাডমিন প্যানেল</a> · শুধু আপনি দেখতে পাচ্ছেন</p></div>
+<div class="card"><div class="two" style="grid-template-columns:2fr 1fr 1fr 1fr">
+<div><label>খুঁজুন (নাম / মোবাইল / আইডি)</label><input id="q" placeholder="যেমন: 0171, 28-27, Rafi" autocomplete="off"></div>
+<div><label>সেশন</label><select id="fs"><option value="">সব</option></select></div>
+<div><label>ব্যাচ</label><select id="fb"><option value="">সব</option></select></div>
+<div><label>সময়</label><select id="ft"><option value="">সব</option></select></div>
+<div><label>অবস্থা</label><select id="fst"><option value="">সব</option><option value="active">active</option><option value="pending">pending</option><option value="blocked">blocked</option></select></div>
+<div><label>ধরন</label><select id="fty"><option value="">সব</option><option value="offline">offline</option><option value="online">online</option></select></div>
+<div><label>পেমেন্ট (সর্বশেষ মাস)</label><select id="ffe"><option value="">সব</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option><option value="none">রেকর্ড নেই</option></select></div>
+<div><label>প্রতি পাতায়</label><select id="ps"><option>25</option><option selected>50</option><option>100</option><option>500</option></select></div></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px"><button class="btn sm" id="rs" type="button">ফিল্টার মুছুন</button><button class="btn sm dark" id="csv" type="button">CSV ডাউনলোড</button><span class="hint" id="cnt" style="margin:0"></span></div>
+<div class="hint">কলামের নামে ক্লিক করলে সাজবে (ছোট→বড়, আবার ক্লিক করলে বড়→ছোট)। একাধিক কলামে সাজাতে Shift চেপে ক্লিক করুন।</div></div>
+<div class="card" style="margin-top:16px"><div class="tw"><table id="t"><thead><tr id="hr"></tr></thead><tbody id="rows"></tbody></table></div>
+<div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px"><button class="btn sm ghost" id="pv" type="button">← আগের</button><span id="pg"></span><button class="btn sm ghost" id="nx" type="button">পরের →</button></div><div id="m" class="msg"></div></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+const COLS=[['#','',0],['id','আইডি','s'],['year','সেশন','n'],['name','নাম','s'],['mobile','মোবাইল','s'],['batch','ব্যাচ','s'],['time','সময়','s'],['type','ধরন','s'],['status','অবস্থা','s'],['paid','পরিশোধিত মাস','n'],['owe','বাকি/আংশিক','n'],['last','সর্বশেষ পেমেন্ট','s'],['att','উপস্থিতি %','n'],['avg','গড় নম্বর %','n']];
+const MORD=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let ALL=[],VIEW=[],sorts=[['id',1]],page=0;
+const col=new Intl.Collator('bn',{numeric:true,sensitivity:'base'});
+function cmp(a,b,k){const x=a[k],y=b[k];if(x===''||x==null){return(y===''||y==null)?0:1}if(y===''||y==null)return -1;return typeof x==='number'&&typeof y==='number'?x-y:col.compare(String(x),String(y))}
+async function all(q){const out=[];for(let f=0;;f+=1000){const {data,error}=await q().range(f,f+999);if(error)throw error;out.push(...data);if(data.length<1000)break}return out}
+function norm(s){return String(s||'').toLowerCase()}
+async function init(){const me=await requireLogin();if(!me)return;if(me.role!=='admin'){location.href='dashboard.html';return}
+ try{const [ps,fe,at,mk]=await Promise.all([
+  all(()=>sb.from('profiles').select('id,student_code,full_name,mobile,student_type,status,class_time,session_year,app_id,batch_members(batches(name))').neq('role','admin').order('id')),
+  all(()=>sb.from('fee_payments').select('student_id,fee_month,fee_year,status').order('student_id')),
+  all(()=>sb.from('daily_attendance').select('student_id,status').order('student_id').order('att_date')),
+  all(()=>sb.from('exam_marks').select('student_id,marks,present,exams(max_marks)').order('student_id').order('exam_id'))]);
+  const F={},A={},K={};
+  fe.forEach(r=>{(F[r.student_id]=F[r.student_id]||[]).push(r)});
+  at.forEach(r=>{const a=A[r.student_id]=A[r.student_id]||[0,0];a[1]++;if(r.status==='present')a[0]++});
+  mk.forEach(r=>{if(!r.present||!r.exams)return;const a=K[r.student_id]=K[r.student_id]||[0,0];a[0]+=r.marks||0;a[1]+=r.exams.max_marks});
+  ALL=ps.map(p=>{const f=(F[p.id]||[]).slice().sort((x,y)=>x.fee_year-y.fee_year||MORD.indexOf(x.fee_month)-MORD.indexOf(y.fee_month));const l=f[f.length-1];const a=A[p.id],k=K[p.id];
+   const code=p.student_code||'';return{id:code,year:p.session_year||'',name:p.full_name,mobile:p.mobile||'',batch:(p.batch_members||[]).map(b=>b.batches&&b.batches.name).filter(Boolean).join(', '),time:p.class_time||'',type:p.student_type,status:p.status,
+   paid:f.filter(x=>x.status==='paid').length,owe:f.filter(x=>x.status!=='paid').length,last:l?l.fee_month.slice(0,3)+' '+l.fee_year+': '+l.status:'',lastS:l?l.status:'none',
+   att:a&&a[1]?Math.round(a[0]*1000/a[1])/10:'',avg:k&&k[1]?Math.round(k[0]*1000/k[1])/10:''}});
+  [['fs','year'],['fb','batch'],['ft','time']].forEach(([s,k])=>{[...new Set(ALL.flatMap(r=>k==='batch'?r.batch.split(', '):[r[k]]).filter(Boolean))].sort(col.compare).forEach(v=>$('#'+s).append(new Option(v,v)))});
+  draw()}catch(e){say($('#m'),'তথ্য আনা যায়নি। আবার চেষ্টা করুন।',false)}}
+function head(){const h=$('#hr');h.replaceChildren();COLS.forEach(([k,t,ty])=>{const th=document.createElement('th');th.textContent=t||'#';if(ty){th.style.cursor='pointer';th.style.whiteSpace='nowrap';const i=sorts.findIndex(s=>s[0]===k);if(i>=0)th.textContent+=(sorts[i][1]>0?' ▲':' ▼')+(sorts.length>1?(i+1):'');th.onclick=e=>{const j=sorts.findIndex(s=>s[0]===k);if(e.shiftKey){if(j>=0)sorts[j][1]*=-1;else sorts.push([k,1])}else sorts=j===0&&sorts.length===1?[[k,-sorts[0][1]]]:[[k,j>=0?-sorts[j][1]:1]];page=0;draw()}}h.append(th)})}
+function filt(){const q=norm($('#q').value).trim(),fs=$('#fs').value,fb=$('#fb').value,ft=$('#ft').value,st=$('#fst').value,ty=$('#fty').value,fe=$('#ffe').value;
+ VIEW=ALL.filter(r=>(!q||norm(r.name+' '+r.mobile+' '+r.id).includes(q))&&(!fs||String(r.year)===fs)&&(!fb||r.batch.split(', ').includes(fb))&&(!ft||r.time===ft)&&(!st||r.status===st)&&(!ty||r.type===ty)&&(!fe||r.lastS===fe));
+ VIEW.sort((a,b)=>{for(const[k,d]of sorts){const c=cmp(a,b,k);if(c)return c*d}return 0})}
+function td(t){const c=document.createElement('td');c.textContent=t==null?'':t;return c}
+function draw(){head();filt();const n=+$('#ps').value,pages=Math.max(1,Math.ceil(VIEW.length/n));if(page>=pages)page=pages-1;const tb=$('#rows');tb.replaceChildren();
+ VIEW.slice(page*n,page*n+n).forEach((r,i)=>{const tr=document.createElement('tr');[page*n+i+1,r.id,r.year,r.name,r.mobile,r.batch,r.time,r.type,r.status,r.paid,r.owe,r.last,r.att===''?'':r.att+'%',r.avg===''?'':r.avg+'%'].forEach(v=>tr.append(td(v)));tb.append(tr)});
+ $('#cnt').textContent=VIEW.length+' জন (মোট '+ALL.length+')';$('#pg').textContent='পাতা '+(page+1)+' / '+pages;$('#pv').disabled=page===0;$('#nx').disabled=page>=pages-1}
+['q'].forEach(i=>$('#'+i).oninput=()=>{page=0;draw()});['fs','fb','ft','fst','fty','ffe','ps'].forEach(i=>$('#'+i).onchange=()=>{page=0;draw()});
+$('#pv').onclick=()=>{page--;draw()};$('#nx').onclick=()=>{page++;draw()};
+$('#rs').onclick=()=>{['q','fs','fb','ft','fst','fty','ffe'].forEach(i=>$('#'+i).value='');sorts=[['id',1]];page=0;draw()};
+$('#csv').onclick=()=>{const e=v=>{v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};const ks=COLS.slice(1);const t='\ufeff'+[ks.map(c=>e(c[1])).join(',')].concat(VIEW.map(r=>ks.map(c=>e(r[c[0]])).join(','))).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='students.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+init();
+</script></body></html>
