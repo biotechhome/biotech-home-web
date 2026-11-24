@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>নিবন্ধন — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="auth"><div class="card box"><h1>অনলাইন শিক্ষার্থী নিবন্ধন</h1><p class="sub" style="margin:0">নিবন্ধনের পর শিক্ষক অনুমোদন দিলে কনটেন্ট দেখতে পারবেন।</p>
+<form id="f"><label>পূর্ণ নাম</label><input id="nm" autocomplete="name" maxlength="80"><label>মোবাইল নম্বর</label><input id="mo" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="username"><label>পাসওয়ার্ড</label><input id="pw" type="password" autocomplete="new-password"><div class="hint">কমপক্ষে ৮ অক্ষর</div>
+<button class="btn full" id="go">নিবন্ধন করুন</button><div id="m" class="msg"></div></form>
+<p class="hint" style="text-align:center;margin-top:16px">আগে থেকেই নিবন্ধিত? <a href="login.html">লগইন</a></p></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+$('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go'),nm=$('#nm').value.trim(),mo=$('#mo').value.trim(),pw=$('#pw').value;
+ if(nm.length<2)return say(m,'নাম লিখুন।');if(!MOBILE.test(mo))return say(m,'সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)।');if(pw.length<8)return say(m,'পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।');
+ btn.disabled=true;const {error}=await sb.auth.signUp({email:mEmail(mo),password:pw,options:{data:{full_name:nm,mobile:mo}}});btn.disabled=false;
+ if(error)return say(m,bnErr(error));await sb.auth.signOut();say(m,'নিবন্ধন সম্পন্ন! শিক্ষক অনুমোদন দিলে লগইন করতে পারবেন।',true);$('#f').reset()};
+</script></body></html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>অ্যাডমিন — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1>অ্যাডমিন প্যানেল</h1><p class="sub"><a href="dashboard.html">← ড্যাশবোর্ড</a></p></div>
+<div class="card" style="margin-bottom:20px"><h2 style="margin-top:0">নতুন অফলাইন শিক্ষার্থী</h2>
+<form id="f"><div class="two"><div><label>আইডি</label><input id="code" placeholder="BH-101"></div><div><label>পূর্ণ নাম</label><input id="nm"></div>
+<div><label>মোবাইল নম্বর</label><input id="mo" inputmode="numeric" maxlength="11"></div><div><label>পিন (৬ সংখ্যা)</label><input id="pin" inputmode="numeric" maxlength="6"></div></div>
+<button class="btn" style="margin-top:16px" id="go">শিক্ষার্থী তৈরি করুন</button><div id="m" class="msg"></div></form></div>
+<div class="card"><h2 style="margin-top:0">শিক্ষার্থী তালিকা</h2><div class="tw"><table><thead><tr><th>আইডি</th><th>নাম</th><th>মোবাইল</th><th>ধরন</th><th>অবস্থা</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></div><div class="card" style="margin-top:20px"><h2 style="margin-top:0">খোলা চিঠির মতামত (লুকান / মুছুন)</h2><div id="lt"></div></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+const FN=SUPABASE_URL+'/functions/v1/admin-create-student';let me;
+function td(t){const c=document.createElement('td');c.textContent=t==null?'':t;return c}
+async function load(){const {data,error}=await sb.from('profiles').select('id,student_code,full_name,mobile,student_type,status,role').neq('role','admin').order('created_at',{ascending:false});
+ const tb=$('#rows');tb.replaceChildren();if(error)return;
+ data.forEach(r=>{const tr=document.createElement('tr');tr.append(td(r.student_code||'—'),td(r.full_name),td(r.mobile),td(r.student_type==='offline'?'অফলাইন':'অনলাইন'),td(r.status==='active'?'সক্রিয়':'অপেক্ষমাণ'));
+  const a=document.createElement('td');if(r.status!=='active'){const b=document.createElement('button');b.className='btn sm';b.textContent='অনুমোদন';b.onclick=async()=>{b.disabled=true;await sb.from('profiles').update({status:'active'}).eq('id',r.id);load()};a.append(b)}tr.append(a);tb.append(tr)})}
+async function loadL(){const {data}=await sb.from('open_letters').select('id,author_name,body,approved,created_at').order('created_at',{ascending:false}).limit(100);const box=$('#lt');box.replaceChildren();
+ (data||[]).forEach(r=>{const d=document.createElement('div');d.className='card letter';d.style.marginBottom='10px';const b=document.createElement('b');b.textContent=r.author_name+(r.approved?' · প্রকাশিত':' · লুকানো');const p=document.createElement('p');p.textContent=r.body;d.append(b,p);
+  {const x=document.createElement('button');x.className='btn sm ghost';x.textContent=r.approved?'লুকান':'প্রকাশ করুন';x.style.margin='8px 8px 0 0';x.onclick=async()=>{await sb.from('open_letters').update({approved:!r.approved}).eq('id',r.id);loadL()};d.append(x)}
+  const y=document.createElement('button');y.className='btn sm dark';y.textContent='মুছুন';y.style.marginTop='8px';y.onclick=async()=>{await sb.from('open_letters').delete().eq('id',r.id);loadL()};d.append(y);box.append(d)});}
+(async()=>{me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}load();loadL()})();
+$('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go');
+ const body={student_code:$('#code').value.trim(),full_name:$('#nm').value.trim(),mobile:$('#mo').value.trim(),pin:$('#pin').value.trim()};
+ if(!/^[A-Za-z0-9-]{3,20}$/.test(body.student_code)||body.full_name.length<2||!MOBILE.test(body.mobile)||!/^[0-9]{6}$/.test(body.pin))return say(m,'সব তথ্য ঠিকভাবে দিন।');
+ btn.disabled=true;const {data:{session}}=await sb.auth.getSession();
+ try{const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:SUPABASE_KEY},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
+  if(r.status===201){say(m,'তৈরি হয়েছে: '+j.student_code,true);$('#f').reset();load()}else say(m,j.error||'তৈরি করা যায়নি।')}catch(_){say(m,'সংযোগ সমস্যা।')}
+ btn.disabled=false};
+</script></body></html>

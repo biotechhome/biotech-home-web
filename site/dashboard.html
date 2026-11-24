@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ড্যাশবোর্ড — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1 id="hi">...</h1><p class="sub" id="meta"></p></div>
+<div id="pending" class="card" hidden><span class="tag red">অনুমোদনের অপেক্ষায়</span><p>আপনার নিবন্ধন সম্পন্ন হয়েছে। শিক্ষক অনুমোদন দিলে এখানে কনটেন্ট দেখা যাবে।</p></div>
+<div id="active" hidden><div class="grid wm" id="tiles"></div></div>
+<p style="margin-top:24px"><a class="btn ghost sm" id="adm" href="admin.html" hidden>অ্যাডমিন প্যানেল</a> <button class="btn dark sm" onclick="logout()">লগআউট</button></p></main>
+<footer class="foot"><div class="wrap">© Biotech Home, রাধাবল্লভ, রংপুর · মো. মোকছেদুর রহমান (রিপন) · <a href="https://www.youtube.com/@reponsathi">YouTube</a></div></footer><script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>(async()=>{const p=await requireLogin();if(!p)return;
+ $('#hi').textContent='স্বাগতম, '+p.full_name;$('#meta').textContent=(p.student_code?'আইডি: '+p.student_code+' · ':'')+(p.role==='admin'?'অ্যাডমিন':p.student_type==='offline'?'অফলাইন শিক্ষার্থী':'অনলাইন শিক্ষার্থী');
+ if(p.role==='admin')$('#adm').hidden=false;
+ if(p.status!=='active'){$('#pending').hidden=false;return}
+ $('#active').hidden=false;const COL=['#E51919','#8E44AD','#2563EB','#D99A00','#0E9F6E','#0891B2'];
+ [['📚','বই ও নোট'],['🧠','মাইন্ড ম্যাপ'],['📝','পরীক্ষা'],['🏆','মেধাতালিকা'],['📊','আমার ফলাফল'],['🎓','কোর্স']].forEach(([i,t])=>{const d=document.createElement('div');d.className='card tile';d.style.setProperty('--c',COL[$('#tiles').children.length%6]);d.innerHTML='<div class="ic"></div><b></b><span>শীঘ্রই আসছে</span>';d.querySelector('.ic').textContent=i;d.querySelector('b').textContent=t;$('#tiles').append(d)});
+})()</script></body></html>

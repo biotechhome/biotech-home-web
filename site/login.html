@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>লগইন — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="auth"><div class="card box"><h1>লগইন</h1><p class="sub" style="margin:0">আপনার ধরন বেছে নিন</p>
+<div class="tabs" role="tablist"><button class="on" data-m="off">অফলাইন</button><button data-m="on">অনলাইন</button><button data-m="adm">অ্যাডমিন</button></div>
+<form id="f">
+<div class="pane" data-p="off"><label>আইডি</label><input id="code" autocomplete="username" placeholder="যেমন BH-101"><label>মোবাইল নম্বর</label><input id="mob1" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX"><label>পিন (৬ সংখ্যা)</label><input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password"></div>
+<div class="pane" data-p="on" hidden><label>মোবাইল নম্বর</label><input id="mob2" inputmode="numeric" maxlength="11" placeholder="01XXXXXXXXX" autocomplete="username"><label>পাসওয়ার্ড</label><input id="pw" type="password" autocomplete="current-password"></div>
+<div class="pane" data-p="adm" hidden><label>ইমেইল</label><input id="em" type="email" autocomplete="username"><label>পাসওয়ার্ড</label><input id="pw2" type="password" autocomplete="current-password"></div>
+<button class="btn full" id="go">প্রবেশ করুন</button><div id="m" class="msg"></div></form>
+<p class="hint" style="text-align:center;margin-top:16px">অনলাইন শিক্ষার্থী? <a href="register.html">নতুন নিবন্ধন করুন</a></p></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+let mode='off';
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.pane').forEach(p=>p.hidden=p.dataset.p!==mode);$('#m').className='msg'});
+$('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go');let email,pass;
+ if(mode==='off'){const c=$('#code').value.trim(),mo=$('#mob1').value.trim(),pin=$('#pin').value.trim();
+  if(!/^[A-Za-z0-9-]{3,20}$/.test(c)||!MOBILE.test(mo)||!/^[0-9]{6}$/.test(pin))return say(m,'আইডি, মোবাইল ও ৬ সংখ্যার পিন ঠিকভাবে দিন।');email=sEmail(c);pass=mo+pin}
+ else if(mode==='on'){const mo=$('#mob2').value.trim(),pw=$('#pw').value;if(!MOBILE.test(mo)||!pw)return say(m,'মোবাইল নম্বর ও পাসওয়ার্ড দিন।');email=mEmail(mo);pass=pw}
+ else{email=$('#em').value.trim();pass=$('#pw2').value;if(!email||!pass)return say(m,'ইমেইল ও পাসওয়ার্ড দিন।')}
+ btn.disabled=true;const {error}=await sb.auth.signInWithPassword({email,password:pass});btn.disabled=false;
+ if(error)return say(m,bnErr(error));location.href='dashboard.html'};
+</script></body></html>
