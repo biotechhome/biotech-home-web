@@ -19,7 +19,8 @@
 <div class="card" style="margin-top:16px"><div class="tw"><table id="t"><thead><tr id="hr"></tr></thead><tbody id="rows"></tbody></table></div>
 <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-top:12px"><button class="btn sm ghost" id="pv" type="button">← আগের</button><span id="pg"></span><button class="btn sm ghost" id="nx" type="button">পরের →</button></div><div id="m" class="msg"></div></div></main>
 <script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
-const COLS=[['#','',0],['id','আইডি','s'],['year','সেশন','n'],['name','নাম','s'],['mobile','মোবাইল','s'],['batch','ব্যাচ','s'],['time','সময়','s'],['type','ধরন','s'],['status','অবস্থা','s'],['paid','পরিশোধিত মাস','n'],['owe','বাকি/আংশিক','n'],['last','সর্বশেষ পেমেন্ট','s'],['att','উপস্থিতি %','n'],['avg','গড় নম্বর %','n']];
+const COLS=[['#','',0],['id','আইডি','s'],['year','সেশন','n'],['name','নাম','s'],['mobile','মোবাইল','s'],['batch','ব্যাচ','s'],['time','সময়','s'],['type','ধরন','s'],['status','অবস্থা','s'],['paid','পরিশোধিত মাস','n'],['owe','বাকি/আংশিক','n'],['last','সর্বশেষ পেমেন্ট','s'],['att','উপস্থিতি %','n'],['avg','গড় নম্বর %','n'],['act','কাজ','']];
+const FN=SUPABASE_URL+'/functions/v1/admin-student-action';
 const MORD=['January','February','March','April','May','June','July','August','September','October','November','December'];
 let ALL=[],VIEW=[],sorts=[['id',1]],page=0;
 const col=new Intl.Collator('bn',{numeric:true,sensitivity:'base'});
@@ -37,7 +38,7 @@ async function init(){const me=await requireLogin();if(!me)return;if(me.role!=='
   at.forEach(r=>{const a=A[r.student_id]=A[r.student_id]||[0,0];a[1]++;if(r.status==='present')a[0]++});
   mk.forEach(r=>{if(!r.present||!r.exams)return;const a=K[r.student_id]=K[r.student_id]||[0,0];a[0]+=r.marks||0;a[1]+=r.exams.max_marks});
   ALL=ps.map(p=>{const f=(F[p.id]||[]).slice().sort((x,y)=>x.fee_year-y.fee_year||MORD.indexOf(x.fee_month)-MORD.indexOf(y.fee_month));const l=f[f.length-1];const a=A[p.id],k=K[p.id];
-   const code=p.student_code||'';return{id:code,year:p.session_year||'',name:p.full_name,mobile:p.mobile||'',batch:(p.batch_members||[]).map(b=>b.batches&&b.batches.name).filter(Boolean).join(', '),time:p.class_time||'',type:p.student_type,status:p.status,
+   const code=p.student_code||'';return{uid:p.id,id:code,year:p.session_year||'',name:p.full_name,mobile:p.mobile||'',batch:(p.batch_members||[]).map(b=>b.batches&&b.batches.name).filter(Boolean).join(', '),time:p.class_time||'',type:p.student_type,status:p.status,
    paid:f.filter(x=>x.status==='paid').length,owe:f.filter(x=>x.status!=='paid').length,last:l?l.fee_month.slice(0,3)+' '+l.fee_year+': '+l.status:'',lastS:l?l.status:'none',
    att:a&&a[1]?Math.round(a[0]*1000/a[1])/10:'',avg:k&&k[1]?Math.round(k[0]*1000/k[1])/10:''}});
   [['fs','year'],['fb','batch'],['ft','time']].forEach(([s,k])=>{[...new Set(ALL.flatMap(r=>k==='batch'?r.batch.split(', '):[r[k]]).filter(Boolean))].sort(col.compare).forEach(v=>$('#'+s).append(new Option(v,v)))});
@@ -46,13 +47,24 @@ function head(){const h=$('#hr');h.replaceChildren();COLS.forEach(([k,t,ty])=>{c
 function filt(){const q=norm($('#q').value).trim(),fs=$('#fs').value,fb=$('#fb').value,ft=$('#ft').value,st=$('#fst').value,ty=$('#fty').value,fe=$('#ffe').value;
  VIEW=ALL.filter(r=>(!q||norm(r.name+' '+r.mobile+' '+r.id).includes(q))&&(!fs||String(r.year)===fs)&&(!fb||r.batch.split(', ').includes(fb))&&(!ft||r.time===ft)&&(!st||r.status===st)&&(!ty||r.type===ty)&&(!fe||r.lastS===fe));
  VIEW.sort((a,b)=>{for(const[k,d]of sorts){const c=cmp(a,b,k);if(c)return c*d}return 0})}
+async function act(r,a){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='login.html';return false}
+ try{const res=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:SUPABASE_KEY},body:JSON.stringify({action:a,student_id:r.uid})});const j=await res.json().catch(()=>({}));
+  if(!res.ok){say($('#m'),res.status===409?'মোছা যায়নি (অনলাইন পেমেন্ট আছে)। আর্কাইভ করুন।':'কাজটি হয়নি। আবার চেষ্টা করুন।',false);return false}
+  if(a==='delete')ALL=ALL.filter(x=>x!==r);else r.status=a==='archive'?'blocked':'active';
+  say($('#m'),a==='delete'?'মুছে ফেলা হয়েছে।':a==='archive'?'আর্কাইভ হয়েছে (লগইন বন্ধ)।':'আবার চালু হয়েছে।',true);draw();return true}catch(e){say($('#m'),'নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।',false);return false}}
+function actions(r){const c=document.createElement('td');c.style.whiteSpace='nowrap';
+ const b1=document.createElement('button');b1.className='btn sm ghost';b1.type='button';b1.textContent=r.status==='blocked'?'ফেরান':'আর্কাইভ';
+ b1.onclick=async()=>{const arch=r.status!=='blocked';if(arch&&!confirm('"'+r.name+'" ('+r.id+') আর্কাইভ করবেন? সে আর লগইন করতে পারবে না, তথ্য থেকে যাবে।'))return;b1.disabled=true;await act(r,arch?'archive':'restore');b1.disabled=false};
+ const b2=document.createElement('button');b2.className='btn sm dark';b2.type='button';b2.style.marginLeft='6px';b2.textContent='ডিলিট';
+ b2.onclick=async()=>{if(!confirm('সতর্কতা: "'+r.name+'" ('+r.id+') সম্পূর্ণ মুছে যাবে — লগইন, ফি, নম্বর, উপস্থিতি, ছবি সব। এটি আর ফেরানো যাবে না।'))return;const t=prompt('নিশ্চিত করতে এই আইডিটি লিখুন: '+r.id);if(t===null)return;if(t.trim().toLowerCase()!==r.id.toLowerCase()){say($('#m'),'আইডি মেলেনি, কিছু মোছা হয়নি।',false);return}b2.disabled=true;await act(r,'delete');b2.disabled=false};
+ c.append(b1,b2);return c}
 function td(t){const c=document.createElement('td');c.textContent=t==null?'':t;return c}
 function draw(){head();filt();const n=+$('#ps').value,pages=Math.max(1,Math.ceil(VIEW.length/n));if(page>=pages)page=pages-1;const tb=$('#rows');tb.replaceChildren();
- VIEW.slice(page*n,page*n+n).forEach((r,i)=>{const tr=document.createElement('tr');[page*n+i+1,r.id,r.year,r.name,r.mobile,r.batch,r.time,r.type,r.status,r.paid,r.owe,r.last,r.att===''?'':r.att+'%',r.avg===''?'':r.avg+'%'].forEach(v=>tr.append(td(v)));tb.append(tr)});
+ VIEW.slice(page*n,page*n+n).forEach((r,i)=>{const tr=document.createElement('tr');[page*n+i+1,r.id,r.year,r.name,r.mobile,r.batch,r.time,r.type,r.status,r.paid,r.owe,r.last,r.att===''?'':r.att+'%',r.avg===''?'':r.avg+'%'].forEach(v=>tr.append(td(v)));tr.append(actions(r));tb.append(tr)});
  $('#cnt').textContent=VIEW.length+' জন (মোট '+ALL.length+')';$('#pg').textContent='পাতা '+(page+1)+' / '+pages;$('#pv').disabled=page===0;$('#nx').disabled=page>=pages-1}
 ['q'].forEach(i=>$('#'+i).oninput=()=>{page=0;draw()});['fs','fb','ft','fst','fty','ffe','ps'].forEach(i=>$('#'+i).onchange=()=>{page=0;draw()});
 $('#pv').onclick=()=>{page--;draw()};$('#nx').onclick=()=>{page++;draw()};
 $('#rs').onclick=()=>{['q','fs','fb','ft','fst','fty','ffe'].forEach(i=>$('#'+i).value='');sorts=[['id',1]];page=0;draw()};
-$('#csv').onclick=()=>{const e=v=>{v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};const ks=COLS.slice(1);const t='\ufeff'+[ks.map(c=>e(c[1])).join(',')].concat(VIEW.map(r=>ks.map(c=>e(r[c[0]])).join(','))).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='students.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('#csv').onclick=()=>{const e=v=>{v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};const ks=COLS.slice(1,-1);const t='\ufeff'+[ks.map(c=>e(c[1])).join(',')].concat(VIEW.map(r=>ks.map(c=>e(r[c[0]])).join(','))).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='students.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 init();
 </script></body></html>
