@@ -18,6 +18,7 @@
 <button class="btn" style="margin-top:16px" id="go">সংরক্ষণ করুন</button><div id="m" class="msg"></div></form>
 <div id="done" class="card" style="margin-top:14px;display:none;border-color:var(--gold)"><b>তৈরি হয়েছে ✔</b><div id="dtext" style="font-size:20px;margin:8px 0"></div><div class="hint">এই পিন আর দেখা যাবে না। এখনই শিক্ষার্থীকে জানিয়ে দিন।</div><a class="btn sm" id="wa" target="_blank" rel="noopener" style="margin-top:8px">WhatsApp-এ পাঠান</a></div></div>
 <div class="card"><h2 style="margin-top:0">শিক্ষার্থী তালিকা <a class="btn sm" href="students.html" style="margin-left:10px">সম্পূর্ণ টেবিল (সার্চ ও সর্টিং) →</a></h2><div class="tw"><table><thead><tr><th>আইডি</th><th>নাম</th><th>মোবাইল</th><th>ব্যাচ</th><th>সময়</th><th>ধরন</th><th>অবস্থা</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></div>
+<div class="card" style="margin-top:20px"><h2 style="margin-top:0">ব্রেকিং নিউজ / নোটিশ / ইভেন্ট</h2><form id="pf"><div class="two"><div><label>ধরন</label><select id="pk"><option value="ticker">ব্রেকিং নিউজ (চলমান লেখা)</option><option value="notice">নোটিশ</option><option value="event">ইভেন্ট</option></select></div><div><label>তারিখ (ইভেন্টের জন্য, ঐচ্ছিক)</label><input id="pd" type="date"></div></div><label>শিরোনাম</label><input id="pt" maxlength="140"><label>বিস্তারিত (ঐচ্ছিক)</label><textarea id="pb" maxlength="1000" rows="3"></textarea><button class="btn" style="margin-top:12px" id="pg" type="submit">প্রকাশ করুন</button><div id="pm" class="msg"></div></form><div id="pl" style="margin-top:14px"></div></div>
 <div class="card" style="margin-top:20px"><h2 style="margin-top:0">খোলা চিঠির মতামত (লুকান / মুছুন)</h2><div id="lt"></div></div></main>
 <script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
 const FN=SUPABASE_URL+'/functions/v1/admin-create-student';let me,fstat='';
@@ -53,4 +54,13 @@ $('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go');$('#d
    $('#done').style.display='block';$('#f').reset();fstat='';document.querySelectorAll('#fs button').forEach(x=>x.classList.remove('on'));$('#fy').value=new Date().getFullYear();load()}
   else say(m,j.error||'তৈরি করা যায়নি।')}catch(_){say(m,'সংযোগ সমস্যা।')}
  btn.disabled=false};
+
+const PK={ticker:'ব্রেকিং',notice:'নোটিশ',event:'ইভেন্ট'};
+async function loadP(){const {data}=await sb.from('site_posts').select('id,kind,title,is_active,created_at').order('created_at',{ascending:false}).limit(100);const box=$('#pl');box.replaceChildren();(data||[]).forEach(x=>{const d=document.createElement('div');d.className='post';d.style.display='flex';d.style.gap='8px';d.style.alignItems='center';const t=document.createElement('span');t.style.flex='1';t.textContent='['+PK[x.kind]+'] '+x.title+(x.is_active?'':' (লুকানো)');
+ const h=document.createElement('button');h.className='btn sm ghost';h.textContent=x.is_active?'লুকান':'প্রকাশ';h.onclick=async()=>{await sb.from('site_posts').update({is_active:!x.is_active}).eq('id',x.id);loadP()};
+ const r=document.createElement('button');r.className='btn sm dark';r.textContent='মুছুন';r.onclick=async()=>{if(!confirm('মুছে ফেলবেন?'))return;await sb.from('site_posts').delete().eq('id',x.id);loadP()};d.append(t,h,r);box.append(d)})}
+$('#pf').onsubmit=async e=>{e.preventDefault();const t=$('#pt').value.trim();if(t.length<3){say($('#pm'),'শিরোনাম অন্তত ৩ অক্ষর লিখুন।',false);return}
+ const row={kind:$('#pk').value,title:t,body:$('#pb').value.trim()||null,event_date:$('#pd').value||null};const {error}=await sb.from('site_posts').insert(row);
+ if(error){say($('#pm'),'প্রকাশ হয়নি। আবার চেষ্টা করুন।',false);return}say($('#pm'),'প্রকাশিত হয়েছে।',true);$('#pt').value='';$('#pb').value='';$('#pd').value='';loadP()};
+loadP();
 </script></body></html>
