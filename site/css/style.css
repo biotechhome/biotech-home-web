@@ -97,3 +97,13 @@ textarea:focus{outline:0;border-color:var(--red);box-shadow:0 0 0 3px #e5191922}
 @media(prefers-reduced-motion:reduce){.ticker .in{animation:none;white-space:normal;flex-wrap:wrap;gap:20px;padding:8px 20px}}
 .posts{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:800px){.posts{grid-template-columns:1fr}}
 .post{padding:12px 0;border-bottom:1px solid var(--line)}.post:last-child{border-bottom:0}.post b{display:block}.post small{color:var(--mut)}.post p{margin:4px 0 0;white-space:pre-wrap}
+
+/* tables: zebra stripes + boxed scrolling with sticky header (all tables live inside .tw) */
+:root{--zebra:#F6F0E4;--zebra-h:#F1E7D2}[data-theme=dark]{--zebra:#27211c;--zebra-h:#33291d}
+.tw{overflow:auto;max-height:min(62vh,540px);border:1px solid var(--line);border-radius:12px;-webkit-overflow-scrolling:touch}
+.tw table{border-collapse:separate;border-spacing:0}
+.tw thead th{position:sticky;top:0;z-index:2;background:var(--card);box-shadow:0 1px 0 var(--line)}
+tbody tr:nth-child(even) td{background:var(--zebra)}tbody tr:nth-child(odd) td{background:var(--card)}
+tbody tr:hover td{background:var(--zebra-h)}
+tbody tr:last-child td{border-bottom:0}
+.msrch{display:flex;gap:8px;margin-top:12px}.msrch input{flex:1}
