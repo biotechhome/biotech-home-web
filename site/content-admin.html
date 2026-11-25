@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>কোর্সের কনটেন্ট — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script><style>.fold>summary{cursor:pointer;list-style:none}.fold>summary::-webkit-details-marker{display:none}.fold>summary h2{margin:0;display:inline}.fold>summary::before{content:"▸ ";font-size:20px}.fold[open]>summary::before{content:"▾ "}</style></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1>কোর্সের কনটেন্ট</h1><p class="sub"><a href="admin.html">← অ্যাডমিন প্যানেল</a> · <a href="courses-admin.html">কোর্স ও ব্যাচ</a></p></div>
+<div class="card"><label>কোর্স বাছুন</label><select id="cs"></select></div>
+<div id="m" class="msg"></div>
+<div class="card" style="margin-top:18px"><h2 style="margin-top:0">নতুন কনটেন্ট যোগ করুন</h2><form id="f">
+<div class="two"><div><label>ধরন</label><select id="k"><option value="video">ভিডিও (YouTube)</option><option value="book">বই (PDF)</option><option value="note">নোট (HTML)</option><option value="mindmap">মাইন্ড ম্যাপ (ছবি/PDF/HTML)</option></select></div><div><label>শিরোনাম</label><input id="t" maxlength="160"></div></div>
+<div id="yv"><label>YouTube লিংক (আনলিস্টেড ভিডিও ভালো)</label><input id="y" placeholder="https://youtu.be/XXXXXXXXXXX"></div>
+<div id="fv" hidden><label>ফাইল (সর্বোচ্চ ৫০ MB)</label><input id="fl" type="file"></div>
+<label style="display:flex;gap:8px;align-items:center;margin-top:12px"><input id="pv" type="checkbox" style="width:auto"> ফ্রি প্রিভিউ (লগইন ছাড়াই সবাই দেখতে পারবে)</label>
+<button class="btn" style="margin-top:12px" type="submit" id="go">যোগ করুন</button></form></div>
+<div class="card" style="margin-top:18px"><h2 style="margin-top:0">এই কোর্সের কনটেন্ট</h2><div id="l"></div></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+const KIND={video:'ভিডিও',book:'বই',note:'নোট',mindmap:'মাইন্ড ম্যাপ'};
+const OK={book:['pdf'],note:['html'],mindmap:['png','jpg','jpeg','webp','pdf','html']};
+const MIME={pdf:'application/pdf',html:'text/html',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'};
+let CID='',BUSY=false;
+const fail=t=>say($('#m'),t||'কাজটি হয়নি। আবার চেষ্টা করুন।',false);
+function ytId(s){s=(s||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;const m=s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);return m?m[1]:null}
+function sync(){const v=$('#k').value==='video';$('#yv').hidden=!v;$('#fv').hidden=v}
+$('#k').onchange=sync;sync();
+async function loadCourses(){const {data}=await sb.from('courses').select('id,title,is_paid').order('created_at',{ascending:false});const s=$('#cs');s.replaceChildren();
+ (data||[]).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.title+(c.is_paid?' (পেইড)':' (ফ্রি)');s.append(o)});
+ if(!(data||[]).length){$('#l').textContent='আগে "কোর্স ও ব্যাচ" পাতা থেকে একটি কোর্স তৈরি করুন।';return}
+ CID=s.value;load()}
+$('#cs').onchange=()=>{CID=$('#cs').value;load()};
+function btn(t,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn sm '+cls;b.style.marginLeft='6px';b.textContent=t;b.onclick=async()=>{b.disabled=true;try{await fn()}finally{b.disabled=false}};return b}
+async function load(){const box=$('#l');box.textContent='লোড হচ্ছে…';
+ const {data,error}=await sb.from('course_items').select('id,title,kind,is_preview,is_active,sort_order').eq('course_id',CID).order('sort_order').order('created_at');
+ if(error){box.textContent='লোড করা যায়নি।';return}
+ box.replaceChildren();if(!data.length){box.textContent='এখনও কিছু যোগ হয়নি।';return}
+ data.forEach((r,i)=>{const row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)';
+  const t=document.createElement('div');t.style.flex='1 1 240px';t.textContent=(i+1)+'. ['+KIND[r.kind]+'] '+r.title+(r.is_preview?' · প্রিভিউ':'')+(r.is_active?'':' · লুকানো');row.append(t);
+  row.append(btn('↑','ghost',async()=>{if(i===0)return;await swap(data[i-1],r)}),btn('↓','ghost',async()=>{if(i===data.length-1)return;await swap(r,data[i+1])}),
+   btn(r.is_active?'লুকান':'দেখান','ghost',async()=>{await upd(r.id,{is_active:!r.is_active})}),
+   btn(r.is_preview?'প্রিভিউ বন্ধ':'প্রিভিউ','ghost',async()=>{await upd(r.id,{is_preview:!r.is_preview})}),
+   btn('ডিলিট','dark',async()=>{if(!confirm('"'+r.title+'" মুছে ফেলবেন? ফেরানো যাবে না।'))return;await del(r)}));box.append(row)})}
+async function upd(id,p){const {error}=await sb.from('course_items').update(p).eq('id',id);error?fail():load()}
+async function swap(a,b){
+ // renumber the whole list so order is always unique and stable
+ const {data}=await sb.from('course_items').select('id').eq('course_id',CID).order('sort_order').order('created_at');
+ const ids=data.map(x=>x.id);const i=ids.indexOf(a.id),j=ids.indexOf(b.id);if(i<0||j<0)return;[ids[i],ids[j]]=[ids[j],ids[i]];
+ for(let n=0;n<ids.length;n++){const {error}=await sb.from('course_items').update({sort_order:n+1}).eq('id',ids[n]);if(error){fail();return}}load()}
+async function del(r){const {data:f}=await sb.from('course_item_files').select('file_path').eq('item_id',r.id).maybeSingle();
+ if(f&&f.file_path){const {error}=await sb.storage.from('course-content').remove([f.file_path]);if(error){fail('ফাইল মোছা যায়নি।');return}}
+ const {error}=await sb.from('course_items').delete().eq('id',r.id);error?fail():(say($('#m'),'মুছে ফেলা হয়েছে।',true),load())}
+$('#f').onsubmit=async e=>{e.preventDefault();if(BUSY||!CID)return;
+ const kind=$('#k').value,title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
+ let yt=null,file=null,ext='';
+ if(kind==='video'){yt=ytId($('#y').value);if(!yt){fail('YouTube লিংক সঠিক নয়।');return}}
+ else{file=$('#fl').files[0];if(!file){fail('ফাইল বাছুন।');return}ext=(file.name.split('.').pop()||'').toLowerCase();
+  if(!OK[kind].includes(ext)){fail('এই ধরনের জন্য শুধু '+OK[kind].join(', ')+' ফাইল চলবে।');return}
+  if(file.size>52428800){fail('ফাইল ৫০ MB-এর বেশি।');return}}
+ BUSY=true;$('#go').disabled=true;say($('#m'),'আপলোড হচ্ছে…',true);
+ let path=null;
+ try{
+  if(file){path=CID+'/'+crypto.randomUUID()+'.'+ext;
+   const {error}=await sb.storage.from('course-content').upload(path,file,{contentType:MIME[ext],upsert:false});if(error)throw error}
+  const {data:mx}=await sb.from('course_items').select('sort_order').eq('course_id',CID).order('sort_order',{ascending:false}).limit(1);
+  const ord=((mx&&mx[0]&&mx[0].sort_order)||0)+1;
+  const {data:it,error:e1}=await sb.from('course_items').insert({course_id:CID,title,kind,is_preview:$('#pv').checked,sort_order:ord}).select('id').single();
+  if(e1)throw e1;
+  const {error:e2}=await sb.from('course_item_files').insert(yt?{item_id:it.id,youtube_id:yt}:{item_id:it.id,file_path:path});
+  if(e2){await sb.from('course_items').delete().eq('id',it.id);throw e2}
+  say($('#m'),'যোগ হয়েছে।',true);$('#f').reset();sync();load()
+ }catch(err){if(path)await sb.storage.from('course-content').remove([path]);fail('যোগ করা যায়নি। আবার চেষ্টা করুন।')}
+ finally{BUSY=false;$('#go').disabled=false}};
+(async()=>{const me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}await loadCourses()})();
+</script></body></html>

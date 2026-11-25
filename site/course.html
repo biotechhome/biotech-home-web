@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>কোর্স — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script><style>.fold>summary{cursor:pointer;list-style:none}.fold>summary::-webkit-details-marker{display:none}.fold>summary h2{margin:0;display:inline}.fold>summary::before{content:"▸ ";font-size:20px}.fold[open]>summary::before{content:"▾ "}.cw{display:grid;grid-template-columns:300px 1fr;gap:18px}@media(max-width:800px){.cw{grid-template-columns:1fr}}
+.it{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;padding:10px 8px;border-radius:10px;cursor:pointer;color:inherit}.it:hover{background:rgba(0,0,0,.05)}.it.on{background:rgba(229,25,25,.1);font-weight:700}
+.vw{position:relative;min-height:320px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.vw iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000}.vw canvas{width:100%;height:auto;display:block;margin:0 auto 10px;border-radius:6px;background:#fff}
+.vw .nt{width:100%;height:78vh;border:1px solid var(--line);border-radius:12px;background:#fff}
+.wmk{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+.wmk span{position:absolute;white-space:nowrap;font-size:14px;font-weight:700;color:rgba(120,120,120,.28);transform:rotate(-24deg)}
+.vw.blur>*:not(.wmk){filter:blur(18px)}
+@media print{body{display:none!important}}</style></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1 id="ct">কোর্স</h1><p class="sub" id="cd"></p><p class="sub"><a href="index.html#courses">← সব কোর্স</a></p></div>
+<div id="m" class="msg"></div>
+<div class="cw"><div class="card" id="li" style="align-self:start"><div class="hint">লোড হচ্ছে…</div></div>
+<div class="card"><div id="vw" class="vw"><div class="hint">বাঁ দিক থেকে একটি কনটেন্ট বাছুন।</div></div></div></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/vendor/pdf.min.js"></script><script src="js/app.js"></script><script>
+const FN=SUPABASE_URL+'/functions/v1/content-access';
+const KIND={video:'🎬',book:'📘',note:'📝',mindmap:'🧠'};
+const CID=new URLSearchParams(location.search).get('id')||'';
+let ITEMS=[],TOKEN=0;
+const vw=$('#vw');
+pdfjsLib.GlobalWorkerOptions.workerSrc='js/vendor/pdf.worker.min.js';
+// ---- light deterrents (real protection: signed URLs + server-side access check + watermark) ----
+vw.addEventListener('contextmenu',e=>e.preventDefault());
+vw.addEventListener('dragstart',e=>e.preventDefault());
+document.addEventListener('keydown',e=>{const k=(e.key||'').toLowerCase();if((e.ctrlKey||e.metaKey)&&['s','p','c','u','a','x'].includes(k)&&vw.querySelector('canvas,iframe.nt,.nt')){e.preventDefault()}});
+document.addEventListener('visibilitychange',()=>{vw.classList.toggle('blur',document.hidden&&!vw.querySelector('iframe[data-yt]'))});
+function wm(host,text){const w=document.createElement('div');w.className='wmk';for(let y=0;y<12;y++)for(let x=0;x<4;x++){const s=document.createElement('span');s.textContent=text;s.style.top=(y*9+(x%2)*4)+'%';s.style.left=(x*28-6)+'%';w.append(s)}host.append(w)}
+function stamp(ctx,w,h,text){ctx.save();ctx.globalAlpha=.16;ctx.fillStyle='#555';ctx.font='bold '+Math.max(14,Math.round(w/38))+'px sans-serif';ctx.rotate(-0.42);const step=Math.round(w/5);for(let y=-h;y<h*1.4;y+=step*0.7)for(let x=-w;x<w*1.5;x+=step*1.9)ctx.fillText(text,x,y);ctx.restore()}
+function msg(t,ok){say($('#m'),t,ok)}
+async function tok(){const {data:{session}}=await sb.auth.getSession();return session?session.access_token:null}
+async function openItem(it,btn){const my=++TOKEN;document.querySelectorAll('.it').forEach(b=>b.classList.toggle('on',b===btn));$('#m').className='msg';
+ vw.replaceChildren();const l=document.createElement('div');l.className='hint';l.textContent='লোড হচ্ছে…';vw.append(l);
+ const t=await tok();const h={'Content-Type':'application/json',apikey:SUPABASE_KEY};if(t)h.Authorization='Bearer '+t;
+ let j;try{const r=await fetch(FN,{method:'POST',headers:h,body:JSON.stringify({item_id:it.id})});j=await r.json().catch(()=>({}));
+  if(my!==TOKEN)return;
+  if(!r.ok){vw.replaceChildren();msg(r.status===401?'এটি দেখতে লগইন করুন।':r.status===403?'এই কোর্সে আপনার ভর্তি নেই বা মেয়াদ শেষ।':'কনটেন্ট খোলা যায়নি।',false);if(r.status===401){const a=document.createElement('a');a.className='btn sm';a.href='login.html';a.textContent='লগইন';vw.append(a)}return}}
+ catch(e){if(my===TOKEN){vw.replaceChildren();msg('নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।',false)}return}
+ vw.replaceChildren();
+ try{
+  if(j.youtube_id){const f=document.createElement('iframe');f.dataset.yt='1';f.allow='encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;f.referrerPolicy='strict-origin-when-cross-origin';
+   f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(j.youtube_id)+'?rel=0&modestbranding=1&disablekb=1&iv_load_policy=3&playsinline=1';vw.append(f);wm(vw,j.watermark);return}
+  if(j.ext==='pdf'){await showPdf(j,my);return}
+  if(j.ext==='html'){const tx=await (await fetch(j.url)).text();if(my!==TOKEN)return;const f=document.createElement('iframe');f.className='nt';f.setAttribute('sandbox','allow-scripts');f.srcdoc=tx;vw.append(f);wm(vw,j.watermark);return}
+  const b=await (await fetch(j.url)).blob();if(my!==TOKEN)return;const bm=await createImageBitmap(b);const c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const x=c.getContext('2d');x.drawImage(bm,0,0);stamp(x,c.width,c.height,j.watermark);vw.append(c);
+ }catch(e){vw.replaceChildren();msg('কনটেন্ট খোলা যায়নি।',false)}}
+async function showPdf(j,my){const buf=await (await fetch(j.url)).arrayBuffer();if(my!==TOKEN)return;
+ const doc=await pdfjsLib.getDocument({data:buf,disableRange:true,enableXfa:false}).promise;if(my!==TOKEN)return;
+ const p1=await doc.getPage(1);const wv=Math.min(vw.clientWidth||800,1000);const base=p1.getViewport({scale:1});const sc=wv/base.width;
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ const io=new IntersectionObserver(es=>es.forEach(async en=>{if(!en.isIntersecting)return;const c=en.target;io.unobserve(c);
+   const pg=await doc.getPage(+c.dataset.p);if(my!==TOKEN)return;const v=pg.getViewport({scale:sc*dpr});c.width=v.width;c.height=v.height;c.style.aspectRatio=v.width+'/'+v.height;
+   const x=c.getContext('2d');await pg.render({canvasContext:x,viewport:v}).promise;stamp(x,v.width,v.height,j.watermark)}),{rootMargin:'600px'});
+ for(let n=1;n<=doc.numPages;n++){const c=document.createElement('canvas');c.dataset.p=n;c.width=Math.round(base.width*sc);c.height=Math.round(base.height*sc);c.style.aspectRatio=base.width+'/'+base.height;vw.append(c);io.observe(c)}}
+async function init(){
+ if(!/^[0-9a-f-]{36}$/i.test(CID)){$('#li').textContent='কোর্স পাওয়া যায়নি।';return}
+ const {data:c}=await sb.from('courses').select('id,title,description,is_paid,price_bdt').eq('id',CID).eq('is_active',true).maybeSingle();
+ if(!c){$('#li').textContent='কোর্স পাওয়া যায়নি।';return}
+ $('#ct').textContent=c.title;$('#cd').textContent=(c.is_paid?'পেইড কোর্স':'ফ্রি কোর্স')+(c.description?' — '+c.description:'');
+ const {data}=await sb.from('course_items').select('id,title,kind,is_preview,sort_order').eq('course_id',CID).order('sort_order').order('created_at');
+ ITEMS=data||[];const li=$('#li');li.replaceChildren();
+ if(!ITEMS.length){li.textContent='কনটেন্ট শীঘ্রই আসছে।';return}
+ ITEMS.forEach(it=>{const b=document.createElement('button');b.type='button';b.className='it';b.textContent=KIND[it.kind]+' '+it.title+(it.is_preview?' (ফ্রি প্রিভিউ)':'');b.onclick=()=>openItem(it,b);li.append(b)})}
+init();
+</script></body></html>
