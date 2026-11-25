@@ -64,14 +64,21 @@ Deno.serve(async (req: Request) => {
   if (!mobile) return reply(req, 400, { error: "Student has no mobile number. Set it first." });
 
   const pin = newPin();
-  const { error: pe } = await admin.auth.admin.updateUserById(id, { password: mobile + pin });
-  if (pe) return reply(req, 500, { error: "Could not update the password" });
-
+  const oldMobile = st.mobile as string | null;
+  const oldStatus = st.status as string;
   if (action === "set_mobile") {
+    // save the mobile FIRST (unique constraint may reject it), so the password never changes without it
     const patch: Record<string, unknown> = { mobile };
-    if (st.status === "pending") patch.status = "active";
+    if (oldStatus === "pending") patch.status = "active";
     const { error: me2 } = await admin.from("profiles").update(patch).eq("id", id);
-    if (me2) return reply(req, 500, { error: "Password changed but the mobile could not be saved. Try again." });
+    if (me2) return reply(req, 409, { error: "Mobile could not be saved (maybe already used by another student)" });
+  }
+  const { error: pe } = await admin.auth.admin.updateUserById(id, { password: mobile + pin });
+  if (pe) {
+    if (action === "set_mobile") {
+      await admin.from("profiles").update({ mobile: oldMobile, status: oldStatus }).eq("id", id); // roll back
+    }
+    return reply(req, 500, { error: "Could not update the password" });
   }
   return reply(req, 200, { ok: true, student_code: st.student_code, mobile, pin });
 });
