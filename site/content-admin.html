@@ -6,10 +6,10 @@
 
 <main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1>কোর্সের কনটেন্ট</h1><p class="sub"><a href="admin.html">← অ্যাডমিন প্যানেল</a></p></div>
 <div id="m" class="msg" style="position:sticky;top:70px;z-index:20"></div>
-<div class="card" id="nocourse" hidden style="border-color:var(--gold)"><h2 style="margin-top:0">ধাপ ১: আগে একটি কোর্স তৈরি করুন</h2><p class="hint" style="margin-top:0">কোনো কোর্স নেই, তাই কনটেন্ট যোগ করা যাচ্ছে না। কোর্সের নাম লিখে তৈরি করুন, তারপর নিচে ভিডিও/বই/নোট যোগ করতে পারবেন।</p>
-<form id="cf"><div class="two"><div><label>কোর্সের নাম</label><input id="ct" maxlength="120" placeholder="যেমন: HSC জীববিজ্ঞান ২০২৮"></div><div><label>ধরন</label><select id="cp"><option value="free">ফ্রি</option><option value="paid">পেইড</option></select></div></div><div id="prw" hidden><label>মূল্য (টাকা)</label><input id="cr" inputmode="numeric" maxlength="6"></div><button class="btn" style="margin-top:12px" type="submit">কোর্স তৈরি করুন</button></form></div>
-<div class="card" id="main"><label style="margin-top:0">কোন কোর্সে যোগ করবেন?</label><select id="cs"></select><div class="hint"><a href="#" id="newc">+ আরও একটি কোর্স তৈরি করুন</a> · <a href="#" id="seeit" target="_blank">শিক্ষার্থী যেভাবে দেখবে ↗</a></div></div>
-<div class="card" style="margin-top:18px" id="addc"><h2 style="margin-top:0">নতুন কনটেন্ট যোগ করুন</h2><form id="f">
+<div class="card" id="main"><label style="margin-top:0">১. কোন কোর্সে যোগ করবেন?</label><select id="cs"></select>
+<div id="newbox" hidden style="margin-top:12px"><div class="two"><div><label>নতুন কোর্সের নাম</label><input id="ct" maxlength="120" placeholder="যেমন: HSC জীববিজ্ঞান ২০২৮"></div><div><label>ধরন</label><select id="cp"><option value="free">ফ্রি</option><option value="paid">পেইড</option></select></div></div><div id="prw" hidden><label>মূল্য (টাকা)</label><input id="cr" inputmode="numeric" maxlength="6"></div><div class="hint">নিচের ফর্মে "যোগ করুন" চাপলে কোর্সটিও তৈরি হয়ে যাবে।</div></div>
+<div class="hint" id="seerow"><a href="#" id="seeit" target="_blank">শিক্ষার্থী যেভাবে দেখবে ↗</a></div></div>
+<div class="card" style="margin-top:18px" id="addc"><h2 style="margin-top:0">২. কী যোগ করবেন?</h2><form id="f">
 <div class="two"><div><label>ধরন</label><select id="k"><option value="video">🎬 ভিডিও (YouTube লিংক)</option><option value="book">📘 বই (PDF)</option><option value="note">📝 নোট (HTML)</option><option value="mindmap">🧠 মাইন্ড ম্যাপ (ছবি/PDF/HTML)</option></select></div><div><label>শিরোনাম</label><input id="t" maxlength="160" placeholder="যেমন: অধ্যায় ১ — কোষ"></div></div>
 <div id="yv"><label>YouTube লিংক (আনলিস্টেড ভিডিও ভালো)</label><input id="y" placeholder="https://youtu.be/XXXXXXXXXXX"></div>
 <div id="fv" hidden><label>ফাইল (সর্বোচ্চ ৫০ MB)</label><input id="fl" type="file"></div>
@@ -26,17 +26,16 @@ const fail=t=>note(t||'কাজটি হয়নি। আবার চেষ
 function ytId(s){s=(s||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;const m=s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);return m?m[1]:null}
 function sync(){const v=$('#k').value==='video';$('#yv').hidden=!v;$('#fv').hidden=v}
 $('#k').onchange=sync;sync();$('#cp').onchange=()=>{$('#prw').hidden=$('#cp').value!=='paid'};
-$('#newc').onclick=e=>{e.preventDefault();$('#nocourse').hidden=false;$('#ct').focus();$('#nocourse').scrollIntoView({behavior:'smooth'})};
-$('#cf').onsubmit=async e=>{e.preventDefault();const t=$('#ct').value.trim(),paid=$('#cp').value==='paid',pr=parseInt($('#cr').value,10);
- if(t.length<2){fail('কোর্সের নাম লিখুন।');return}if(paid&&!(pr>0)){fail('পেইড কোর্সের মূল্য লিখুন।');return}
- const {data,error}=await sb.from('courses').insert({title:t,is_paid:paid,price_bdt:paid?pr:null,is_active:true}).select('id').single();
- if(error){fail('কোর্স তৈরি হয়নি।');return}$('#cf').reset();$('#prw').hidden=true;note('✔ কোর্স তৈরি হয়েছে। এবার নিচে কনটেন্ট যোগ করুন।',true);await loadCourses(data.id)};
+$('#cp').onchange=()=>{$('#prw').hidden=$('#cp').value!=='paid'};
+const NEW='__new__';
+function isNew(){return $('#cs').value===NEW}
+function syncCourse(){const n=isNew();$('#newbox').hidden=!n;$('#seerow').hidden=n;CID=n?'':$('#cs').value;
+ if(n){$('#l').textContent='নতুন কোর্স — এখনও কিছু নেই।';$('#cnt').textContent=''}else load()}
 async function loadCourses(sel){const {data}=await sb.from('courses').select('id,title,is_paid').order('created_at',{ascending:false});const s=$('#cs');s.replaceChildren();
  (data||[]).forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.title+(c.is_paid?' (পেইড)':' (ফ্রি)');s.append(o)});
- const has=(data||[]).length>0;$('#nocourse').hidden=has;$('#main').hidden=!has;$('#addc').hidden=!has;
- if(!has){$('#l').textContent='কোনো কোর্স নেই।';$('#cnt').textContent='';return}
- if(sel)s.value=sel;CID=s.value;load()}
-$('#cs').onchange=()=>{CID=$('#cs').value;load()};
+ s.append(new Option('➕ নতুন কোর্স তৈরি করুন',NEW));
+ s.value=sel||((data||[]).length?data[0].id:NEW);syncCourse()}
+$('#cs').onchange=syncCourse;
 function btn(t,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn sm '+cls;b.style.marginLeft='6px';b.textContent=t;b.onclick=async()=>{b.disabled=true;try{await fn()}finally{b.disabled=false}};return b}
 async function load(){const box=$('#l');box.textContent='লোড হচ্ছে…';$('#seeit').href='course.html?id='+encodeURIComponent(CID);
  const {data,error}=await sb.from('course_items').select('id,title,kind,is_preview,is_active,sort_order,course_item_files(youtube_id,file_path)').eq('course_id',CID).order('sort_order').order('created_at');
@@ -61,16 +60,20 @@ async function swap(a,b){const {data}=await sb.from('course_items').select('id')
 async function del(r,f){if(f&&f.file_path){const {error}=await sb.storage.from('course-content').remove([f.file_path]);if(error){fail('ফাইল মোছা যায়নি।');return}}
  const {error}=await sb.from('course_items').delete().eq('id',r.id);error?fail():(note('মুছে ফেলা হয়েছে।',true),load())}
 $('#f').onsubmit=async e=>{e.preventDefault();if(BUSY)return;
- if(!CID){fail('আগে একটি কোর্স তৈরি করুন বা বাছুন।');return}
- const kind=$('#k').value,title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
+  const kind=$('#k').value,title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
  let yt=null,file=null,ext='';
  if(kind==='video'){yt=ytId($('#y').value);if(!yt){fail('YouTube লিংক সঠিক নয়। পুরো লিংকটি পেস্ট করুন।');return}}
  else{file=$('#fl').files[0];if(!file){fail('ফাইল বাছুন।');return}ext=(file.name.split('.').pop()||'').toLowerCase();
   if(!OK[kind].includes(ext)){fail('এই ধরনের জন্য শুধু '+OK[kind].join(', ')+' ফাইল চলবে।');return}
   if(file.size>52428800){fail('ফাইল ৫০ MB-এর বেশি।');return}}
  BUSY=true;$('#go').disabled=true;note('আপলোড হচ্ছে… অপেক্ষা করুন।',true);
- let path=null;
+ let path=null,madeCourse=null;
  try{
+  if(isNew()){const cn=$('#ct').value.trim(),paid=$('#cp').value==='paid',pr=parseInt($('#cr').value,10);
+   if(cn.length<2){BUSY=false;$('#go').disabled=false;fail('নতুন কোর্সের নাম লিখুন।');return}
+   if(paid&&!(pr>0)){BUSY=false;$('#go').disabled=false;fail('পেইড কোর্সের মূল্য লিখুন।');return}
+   const {data:cc,error:ce}=await sb.from('courses').insert({title:cn,is_paid:paid,price_bdt:paid?pr:null,is_active:true}).select('id').single();
+   if(ce)throw ce;madeCourse=cc.id;CID=cc.id}
   if(file){path=CID+'/'+crypto.randomUUID()+'.'+ext;
    const {error}=await sb.storage.from('course-content').upload(path,file,{contentType:MIME[ext],upsert:false});if(error)throw error}
   const {data:mx}=await sb.from('course_items').select('sort_order').eq('course_id',CID).order('sort_order',{ascending:false}).limit(1);
@@ -79,8 +82,8 @@ $('#f').onsubmit=async e=>{e.preventDefault();if(BUSY)return;
   if(e1)throw e1;
   const {error:e2}=await sb.from('course_item_files').insert(yt?{item_id:it.id,youtube_id:yt}:{item_id:it.id,file_path:path});
   if(e2){await sb.from('course_items').delete().eq('id',it.id);throw e2}
-  note('✔ সফল! "'+title+'" যোগ হয়েছে। নিচের তালিকায় দেখুন।',true);$('#f').reset();sync();await load();$('#l').scrollIntoView({behavior:'smooth'})
- }catch(err){if(path)await sb.storage.from('course-content').remove([path]);fail('যোগ করা যায়নি। ('+((err&&err.message)||'অজানা সমস্যা').slice(0,80)+')')}
+  note('✔ সফল! "'+title+'" যোগ হয়েছে। নিচের তালিকায় দেখুন।',true);$('#f').reset();sync();if(madeCourse){$('#ct').value='';await loadCourses(madeCourse)}else await load();$('#l').scrollIntoView({behavior:'smooth'})
+ }catch(err){if(path)await sb.storage.from('course-content').remove([path]);if(madeCourse){await sb.from('courses').delete().eq('id',madeCourse);CID=''}fail('যোগ করা যায়নি। ('+((err&&err.message)||'অজানা সমস্যা').slice(0,80)+')')}
  finally{BUSY=false;$('#go').disabled=false}};
 (async()=>{const me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}await loadCourses()})();
 </script></body></html>
