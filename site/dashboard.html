@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ড্যাশবোর্ড — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<title>ড্যাশবোর্ড — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script><style>.fold>summary{cursor:pointer;list-style:none}.fold>summary::-webkit-details-marker{display:none}.fold>summary h2{margin:0;display:inline}.fold>summary::before{content:"▸ ";font-size:20px}.fold[open]>summary::before{content:"▾ "}.stat{text-align:center}.stat b{display:block;font-size:30px;color:var(--red)}.stat span{color:var(--mut)}</style></head><body>
 <header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
 <nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
 
 <main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1 id="hi">...</h1><p class="sub" id="meta"></p></div>
 <div id="pending" class="card" hidden><span class="tag red">অনুমোদনের অপেক্ষায়</span><p>আপনার নিবন্ধন সম্পন্ন হয়েছে। শিক্ষক অনুমোদন দিলে এখানে কনটেন্ট দেখা যাবে।</p></div>
-<div id="active" hidden><div class="grid wm" id="tiles"></div></div>
+<div id="active" hidden><div class="grid" id="sum" style="margin-bottom:18px"></div>
+<div class="card" style="margin-bottom:18px"><h2 style="margin-top:0">📝 পরীক্ষার নম্বর</h2><div class="tw"><table><thead><tr><th>পরীক্ষা</th><th>প্রাপ্ত নম্বর</th><th>পূর্ণমান</th><th>%</th></tr></thead><tbody id="mk"></tbody></table></div><p class="hint" id="mke"></p></div>
+<div class="card" style="margin-bottom:18px"><h2 style="margin-top:0">💳 মাসিক ফি</h2><div class="tw"><table><thead><tr><th>মাস</th><th>অবস্থা</th><th>জমা (আংশিক হলে)</th></tr></thead><tbody id="fe"></tbody></table></div><p class="hint" id="fee"></p></div>
+<details class="card fold" style="margin-bottom:18px"><summary><h2>📅 উপস্থিতি (খুলতে ক্লিক করুন)</h2></summary><div class="tw" style="margin-top:10px"><table><thead><tr><th>তারিখ</th><th>অবস্থা</th></tr></thead><tbody id="at"></tbody></table></div><p class="hint" id="ate"></p></details>
+<div class="grid wm" id="tiles"></div></div>
 <p style="margin-top:24px"><a class="btn ghost sm" id="adm" href="admin.html" hidden>অ্যাডমিন প্যানেল</a> <button class="btn dark sm" onclick="logout()">লগআউট</button></p></main>
 <footer class="foot"><div class="wrap">© Biotech Home, রাধাবল্লভ, রংপুর · মো. মোকছেদুর রহমান (রিপন) · <a href="https://www.youtube.com/@reponsathi">YouTube</a></div></footer><script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>(async()=>{const p=await requireLogin();if(!p)return;
  $('#hi').textContent='স্বাগতম, '+p.full_name;$('#meta').textContent=(p.student_code?'আইডি: '+p.student_code+' · ':'')+(p.role==='admin'?'অ্যাডমিন':p.student_type==='offline'?'অফলাইন শিক্ষার্থী':'অনলাইন শিক্ষার্থী');
@@ -14,4 +18,26 @@
  if(p.status!=='active'){$('#pending').hidden=false;return}
  $('#active').hidden=false;const COL=['#E51919','#8E44AD','#2563EB','#D99A00','#0E9F6E','#0891B2'];
  [['📚','বই ও নোট'],['🧠','মাইন্ড ম্যাপ'],['📝','পরীক্ষা'],['🏆','মেধাতালিকা'],['📊','আমার ফলাফল'],['🎓','কোর্স']].forEach(([i,t])=>{const d=document.createElement('div');d.className='card tile';d.style.setProperty('--c',COL[$('#tiles').children.length%6]);d.innerHTML='<div class="ic"></div><b></b><span>শীঘ্রই আসছে</span>';d.querySelector('.ic').textContent=i;d.querySelector('b').textContent=t;$('#tiles').append(d)});
+
+ (async()=>{const bn=n=>Number(n).toLocaleString('bn-BD');const MO=['January','February','March','April','May','June','July','August','September','October','November','December'];const MB={January:'জানুয়ারি',February:'ফেব্রুয়ারি',March:'মার্চ',April:'এপ্রিল',May:'মে',June:'জুন',July:'জুলাই',August:'আগস্ট',September:'সেপ্টেম্বর',October:'অক্টোবর',November:'নভেম্বর',December:'ডিসেম্বর'};const ST={paid:'পরিশোধিত',due:'বাকি',partial:'আংশিক'};
+  function row(tb,vals){const tr=document.createElement('tr');vals.forEach(v=>{const c=document.createElement('td');c.textContent=v;tr.append(c)});tb.append(tr)}
+  function stat(t,v){const d=document.createElement('div');d.className='card stat';const b=document.createElement('b');b.textContent=v;const sp=document.createElement('span');sp.textContent=t;d.append(b,sp);$('#sum').append(d)}
+  try{const [mk,fe,at]=await Promise.all([
+   sb.from('exam_marks').select('marks,present,exams(name,max_marks,app_id)').eq('student_id',p.id),
+   sb.from('fee_payments').select('fee_month,fee_year,status,amount_bdt').eq('student_id',p.id),
+   sb.from('daily_attendance').select('att_date,status').eq('student_id',p.id).order('att_date',{ascending:false}).limit(400)]);
+   const M=(mk.data||[]).filter(x=>x.exams).sort((x,y)=>x.exams.app_id-y.exams.app_id);let got=0,tot=0;
+   M.forEach(x=>{const pr=x.present;if(pr){got+=x.marks||0;tot+=x.exams.max_marks}row($('#mk'),[x.exams.name,pr?bn(x.marks):'অনুপস্থিত',bn(x.exams.max_marks),pr?bn(Math.round((x.marks||0)*1000/x.exams.max_marks)/10)+'%':'—'])});
+   if(!M.length)$('#mke').textContent='এখনো কোনো পরীক্ষার নম্বর যোগ হয়নি।';
+   const F=(fe.data||[]).slice().sort((x,y)=>y.fee_year-x.fee_year||MO.indexOf(y.fee_month)-MO.indexOf(x.fee_month));
+   F.forEach(x=>row($('#fe'),[(MB[x.fee_month]||x.fee_month)+' '+bn(x.fee_year),ST[x.status]||x.status,x.status==='partial'&&x.amount_bdt!=null?bn(x.amount_bdt)+' টাকা':'—']));
+   if(!F.length)$('#fee').textContent='ফি-এর কোনো রেকর্ড নেই।';
+   const A=at.data||[];const pc=A.filter(x=>x.status==='present').length;
+   A.forEach(x=>row($('#at'),[new Date(x.att_date+'T00:00:00').toLocaleDateString('bn-BD',{day:'numeric',month:'long',year:'numeric'}),x.status==='present'?'উপস্থিত':'অনুপস্থিত']));
+   if(!A.length)$('#ate').textContent='উপস্থিতির কোনো রেকর্ড নেই।';
+   if(A.length)stat('উপস্থিতি',bn(Math.round(pc*1000/A.length)/10)+'%');
+   if(tot)stat('গড় নম্বর',bn(Math.round(got*1000/tot)/10)+'%');
+   stat('পরিশোধিত মাস',bn(F.filter(x=>x.status==='paid').length));
+   const due=F.filter(x=>x.status!=='paid').length;if(due)stat('বাকি/আংশিক মাস',bn(due));
+  }catch(e){$('#mke').textContent='তথ্য আনা যায়নি। পেজ রিফ্রেশ করুন।'}})();
 })()</script></body></html>
