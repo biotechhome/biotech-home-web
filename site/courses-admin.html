@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>কোর্স ও ব্যাচ — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script><style>.fold>summary{cursor:pointer;list-style:none}.fold>summary::-webkit-details-marker{display:none}.fold>summary h2{margin:0;display:inline}.fold>summary::before{content:"▸ ";font-size:20px}.fold[open]>summary::before{content:"▾ "}</style></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1>কোর্স ও ব্যাচ</h1><p class="sub"><a href="admin.html">← অ্যাডমিন প্যানেল</a></p></div>
+<div class="tabs" id="tb" style="margin-bottom:16px"><button type="button" data-t="c" class="on">কোর্স</button><button type="button" data-t="b">ব্যাচ</button><button type="button" data-t="e">শিক্ষার্থী যোগ</button></div>
+<div id="m" class="msg"></div>
+<section id="p-c"><div class="card" style="margin-bottom:18px"><h2 style="margin-top:0">নতুন কোর্স</h2><form id="cf"><label>নাম</label><input id="ct" maxlength="120"><label>বিবরণ (ঐচ্ছিক)</label><textarea id="cd" rows="3" maxlength="1000"></textarea>
+<div class="two"><div><label>ধরন</label><select id="cp"><option value="free">ফ্রি</option><option value="paid">পেইড</option></select></div><div><label>মূল্য (টাকা, পেইডের জন্য)</label><input id="cr" inputmode="numeric" maxlength="6"></div></div><button class="btn" style="margin-top:12px" type="submit">কোর্স তৈরি করুন</button></form></div>
+<div class="card"><h2 style="margin-top:0">কোর্স তালিকা</h2><div id="cl"></div></div></section>
+<section id="p-b" hidden><div class="card" style="margin-bottom:18px"><h2 style="margin-top:0">নতুন ব্যাচ</h2><form id="bf"><div class="two"><div><label>সেশন</label><select id="bs"><option value="2028">HSC 2028</option><option value="2027">HSC 2027</option></select></div><div><label>ব্যাচের নাম</label><input id="bn" maxlength="60"></div></div><button class="btn" style="margin-top:12px" type="submit">ব্যাচ তৈরি করুন</button></form></div>
+<div class="card"><h2 style="margin-top:0">ব্যাচ তালিকা</h2><div id="bl"></div></div></section>
+<section id="p-e" hidden><div class="card" style="margin-bottom:18px"><h2 style="margin-top:0">কোর্সে শিক্ষার্থী যোগ করুন</h2><div class="two"><div><label>কোর্স</label><select id="ec"></select></div><div><label>মেয়াদ (দিন, ফাঁকা = অসীম)</label><input id="ed" inputmode="numeric" maxlength="4"></div></div>
+<div class="card" style="margin-top:12px"><b>পুরো ব্যাচ একসাথে</b><div class="two"><div><select id="eb"></select></div><div><button class="btn sm" id="eab" type="button">ব্যাচের সবাইকে যোগ করুন</button></div></div></div>
+<div class="card" style="margin-top:12px"><b>একজন একজন করে</b><label>খুঁজুন (নাম / মোবাইল / আইডি)</label><input id="eq" autocomplete="off" placeholder="অন্তত ২ অক্ষর লিখুন"><div id="er" style="margin-top:8px"></div></div></div>
+<div class="card"><h2 style="margin-top:0">এই কোর্সের শিক্ষার্থী</h2><div id="el"></div></div></section></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+const ex=(t,cls,fn)=>{const b=document.createElement('button');b.type='button';b.className='btn sm '+(cls||'');b.textContent=t;b.onclick=fn;return b};
+function line(parts,btns){const d=document.createElement('div');d.className='post';d.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';const t=document.createElement('span');t.style.flex='1';t.textContent=parts;d.append(t,...btns);return d}
+let COURSES=[],BATCHES=[];
+document.querySelectorAll('#tb button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tb button').forEach(x=>x.classList.toggle('on',x===b));['c','b','e'].forEach(k=>$('#p-'+k).hidden=k!==b.dataset.t);if(b.dataset.t==='e')loadEnrolled()});
+const fail=()=>say($('#m'),'কাজটি হয়নি। আবার চেষ্টা করুন।',false);
+async function loadC(){const {data}=await sb.from('courses').select('id,title,description,is_paid,price_bdt,is_active').order('created_at',{ascending:false});COURSES=data||[];const box=$('#cl');box.replaceChildren();
+ COURSES.forEach(c=>box.append(line(c.title+' — '+(c.is_paid?'পেইড '+(c.price_bdt||0)+' টাকা':'ফ্রি')+(c.is_active?'':' (লুকানো)'),[
+  ex(c.is_active?'লুকান':'প্রকাশ','ghost',async()=>{const {error}=await sb.from('courses').update({is_active:!c.is_active}).eq('id',c.id);error?fail():loadC()}),
+  ex('মুছুন','dark',async()=>{if(!confirm('"'+c.title+'" কোর্স ও এর সব শিক্ষার্থী-অ্যাক্সেস মুছে যাবে। নিশ্চিত?'))return;const {error}=await sb.from('courses').delete().eq('id',c.id);error?say($('#m'),'মোছা যায়নি (পেমেন্ট রেকর্ড থাকতে পারে)। লুকিয়ে রাখুন।',false):loadC()})])));
+ if(!COURSES.length)box.textContent='কোনো কোর্স নেই।';
+ const s=$('#ec');const k=s.value;s.replaceChildren();COURSES.forEach(c=>s.append(new Option(c.title,c.id)));if(k)s.value=k}
+$('#cf').onsubmit=async e=>{e.preventDefault();const t=$('#ct').value.trim();const paid=$('#cp').value==='paid';const pr=parseInt($('#cr').value,10);
+ if(t.length<2){say($('#m'),'কোর্সের নাম লিখুন।',false);return}if(paid&&!(pr>0)){say($('#m'),'পেইড কোর্সের মূল্য লিখুন।',false);return}
+ const {error}=await sb.from('courses').insert({title:t,description:$('#cd').value.trim()||null,is_paid:paid,price_bdt:paid?pr:null,is_active:true});
+ if(error){fail();return}say($('#m'),'কোর্স তৈরি হয়েছে।',true);$('#ct').value='';$('#cd').value='';$('#cr').value='';loadC()};
+async function loadB(){const {data}=await sb.from('batches').select('id,name,session_year,is_active,batch_members(count)').order('session_year',{ascending:false}).order('created_at');BATCHES=data||[];const box=$('#bl');box.replaceChildren();
+ BATCHES.forEach(b=>box.append(line('HSC '+b.session_year+' · '+b.name+' — '+((b.batch_members&&b.batch_members[0]&&b.batch_members[0].count)||0)+' জন'+(b.is_active===false?' (বন্ধ)':''),[
+  ex('নাম বদলান','ghost',async()=>{const n=prompt('নতুন নাম',b.name);if(!n||n.trim().length<2)return;const {error}=await sb.from('batches').update({name:n.trim()}).eq('id',b.id);error?fail():loadB()}),
+  ex(b.is_active===false?'চালু':'বন্ধ','ghost',async()=>{const {error}=await sb.from('batches').update({is_active:b.is_active===false}).eq('id',b.id);error?fail():loadB()}),
+  ex('মুছুন','dark',async()=>{const n=(b.batch_members&&b.batch_members[0]&&b.batch_members[0].count)||0;if(n>0){say($('#m'),'এই ব্যাচে '+n+' জন আছে, আগে বন্ধ করুন। শিক্ষার্থী থাকলে মোছা যাবে না।',false);return}if(!confirm('ব্যাচ মুছবেন?'))return;const {error}=await sb.from('batches').delete().eq('id',b.id);error?fail():loadB()})])));
+ const s=$('#eb');s.replaceChildren();BATCHES.forEach(b=>s.append(new Option('HSC '+b.session_year+' · '+b.name,b.id)))}
+$('#bf').onsubmit=async e=>{e.preventDefault();const n=$('#bn').value.trim();if(n.length<2){say($('#m'),'ব্যাচের নাম লিখুন।',false);return}
+ const {error}=await sb.from('batches').insert({name:n,kind:'offline',session_year:+$('#bs').value});if(error){fail();return}say($('#m'),'ব্যাচ তৈরি হয়েছে।',true);$('#bn').value='';loadB()};
+function expiry(){const d=parseInt($('#ed').value,10);return d>0?new Date(Date.now()+d*864e5).toISOString():null}
+async function grant(ids){const cid=$('#ec').value;if(!cid){say($('#m'),'আগে কোর্স বেছে নিন।',false);return}const ex_=expiry();let n=0;
+ for(let i=0;i<ids.length;i+=200){const rows=ids.slice(i,i+200).map(id=>({student_id:id,course_id:cid,expires_at:ex_}));const {error}=await sb.from('course_access').upsert(rows,{onConflict:'student_id,course_id'});if(error){fail();return}n+=rows.length}
+ say($('#m'),n+' জনকে যোগ করা হয়েছে।',true);loadEnrolled()}
+$('#eab').onclick=async()=>{const bid=$('#eb').value;if(!bid)return;const {data,error}=await sb.from('batch_members').select('student_id').eq('batch_id',bid).limit(2000);if(error||!data){fail();return}
+ if(!data.length){say($('#m'),'এই ব্যাচে কেউ নেই।',false);return}if(!confirm(data.length+' জনকে কোর্সে যোগ করবেন?'))return;grant(data.map(x=>x.student_id))};
+let qt;$('#eq').oninput=()=>{clearTimeout(qt);qt=setTimeout(async()=>{const q=$('#eq').value.trim().replace(/[%,()*]/g,'');const box=$('#er');box.replaceChildren();if(q.length<2)return;
+ const {data}=await sb.from('profiles').select('id,full_name,mobile,student_code').neq('role','admin').or('full_name.ilike.%'+q+'%,mobile.ilike.%'+q+'%,student_code.ilike.%'+q+'%').limit(15);
+ (data||[]).forEach(p=>box.append(line((p.student_code||'')+' · '+p.full_name+' · '+(p.mobile||''),[ex('যোগ করুন','',()=>grant([p.id]))])))},300)};
+async function loadEnrolled(){const cid=$('#ec').value;const box=$('#el');box.replaceChildren();if(!cid)return;
+ const {data}=await sb.from('course_access').select('student_id,expires_at,profiles(full_name,student_code)').eq('course_id',cid).order('granted_at',{ascending:false}).limit(500);
+ (data||[]).forEach(r=>box.append(line(((r.profiles&&r.profiles.student_code)||'')+' · '+((r.profiles&&r.profiles.full_name)||'')+(r.expires_at?' · মেয়াদ: '+new Date(r.expires_at).toLocaleDateString('bn-BD'):''),[
+  ex('সরান','dark',async()=>{const {error}=await sb.from('course_access').delete().eq('student_id',r.student_id).eq('course_id',cid);error?fail():loadEnrolled()})])));
+ if(!(data||[]).length)box.textContent='এই কোর্সে কেউ নেই।'}
+$('#ec').onchange=loadEnrolled;
+(async()=>{const me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}await loadC();await loadB()})();
+</script></body></html>

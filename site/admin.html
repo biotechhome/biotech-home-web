@@ -17,7 +17,9 @@
 <label>টাকার পরিমাণ (ঐচ্ছিক)</label><input id="fa" inputmode="numeric" maxlength="6"></div>
 <button class="btn" style="margin-top:16px" id="go">সংরক্ষণ করুন</button><div id="m" class="msg"></div></form>
 <div id="done" class="card" style="margin-top:14px;display:none;border-color:var(--gold)"><b>তৈরি হয়েছে ✔</b><div id="dtext" style="font-size:20px;margin:8px 0"></div><div class="hint">এই পিন আর দেখা যাবে না। এখনই শিক্ষার্থীকে জানিয়ে দিন।</div><a class="btn sm" id="wa" target="_blank" rel="noopener" style="margin-top:8px">WhatsApp-এ পাঠান</a></div></div>
+<div class="card" style="margin-bottom:20px"><h2 style="margin-top:0">কোর্স ও ব্যাচ</h2><a class="btn" href="courses-admin.html">কোর্স ও ব্যাচ ম্যানেজ করুন →</a></div>
 <div class="card" style="margin-bottom:20px"><h2 style="margin-top:0">ব্রেকিং নিউজ / নোটিশ / ইভেন্ট</h2><form id="pf"><div class="two"><div><label>ধরন</label><select id="pk"><option value="ticker">ব্রেকিং নিউজ (চলমান লেখা)</option><option value="notice">নোটিশ</option><option value="event">ইভেন্ট</option></select></div><div><label>তারিখ (ইভেন্টের জন্য, ঐচ্ছিক)</label><input id="pd" type="date"></div></div><label>শিরোনাম</label><input id="pt" maxlength="140"><label>বিস্তারিত (ঐচ্ছিক)</label><textarea id="pb" maxlength="1000" rows="3"></textarea><button class="btn" style="margin-top:12px" id="pg" type="submit">প্রকাশ করুন</button><div id="pm" class="msg"></div></form><div id="pl" style="margin-top:14px"></div></div>
+<div class="card" style="margin-bottom:20px"><h2 style="margin-top:0">🏆 মেধাতালিকা প্রকাশ</h2><p class="hint" style="margin-top:0">যে পরীক্ষা "প্রকাশিত" করবেন, শুধু সেটির নাম, নম্বর ও র‍্যাংক হোম পেজে সবাই দেখতে পাবে (মোবাইল বা আইডি নয়)। ডিফল্টে সব লুকানো।</p><div id="el"></div></div>
 <details class="card fold"><summary><h2>শিক্ষার্থী তালিকা (খুলতে ক্লিক করুন)</h2></summary><div style="margin:10px 0"><a class="btn sm" href="students.html">সম্পূর্ণ টেবিল (সার্চ ও সর্টিং) →</a></div><div class="tw"> <table><thead><tr><th>আইডি</th><th>নাম</th><th>মোবাইল</th><th>ব্যাচ</th><th>সময়</th><th>ধরন</th><th>অবস্থা</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></details>
 <details class="card fold" style="margin-top:20px"><summary><h2>খোলা চিঠির মতামত (লুকান / মুছুন)</h2></summary><div id="lt" style="margin-top:10px"></div></details></main>
 <script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
@@ -63,4 +65,8 @@ $('#pf').onsubmit=async e=>{e.preventDefault();const t=$('#pt').value.trim();if(
  const row={kind:$('#pk').value,title:t,body:$('#pb').value.trim()||null,event_date:$('#pd').value||null};const {error}=await sb.from('site_posts').insert(row);
  if(error){say($('#pm'),'প্রকাশ হয়নি। আবার চেষ্টা করুন।',false);return}say($('#pm'),'প্রকাশিত হয়েছে।',true);$('#pt').value='';$('#pb').value='';$('#pd').value='';loadP()};
 loadP();
+
+async function loadE(){const {data}=await sb.from('exams').select('id,session_year,app_id,name,max_marks,public_merit').order('session_year',{ascending:false}).order('app_id');const box=$('#el');box.replaceChildren();(data||[]).forEach(x=>{const d=document.createElement('div');d.className='post';d.style.display='flex';d.style.gap='8px';d.style.alignItems='center';const t=document.createElement('span');t.style.flex='1';t.textContent='HSC '+x.session_year+' · '+x.name+' ('+x.max_marks+')'+(x.public_merit?' — প্রকাশিত':'');
+ const b=document.createElement('button');b.className='btn sm '+(x.public_merit?'ghost':'');b.textContent=x.public_merit?'লুকান':'প্রকাশ করুন';b.onclick=async()=>{b.disabled=true;await sb.from('exams').update({public_merit:!x.public_merit}).eq('id',x.id);loadE()};d.append(t,b);box.append(d)})}
+loadE();
 </script></body></html>
