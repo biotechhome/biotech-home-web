@@ -52,12 +52,31 @@ async function act(r,a){const {data:{session}}=await sb.auth.getSession();if(!se
   if(!res.ok){say($('#m'),res.status===409?'মোছা যায়নি (অনলাইন পেমেন্ট আছে)। আর্কাইভ করুন।':'কাজটি হয়নি। আবার চেষ্টা করুন।',false);return false}
   if(a==='delete')ALL=ALL.filter(x=>x!==r);else r.status=a==='archive'?'blocked':'active';
   say($('#m'),a==='delete'?'মুছে ফেলা হয়েছে।':a==='archive'?'আর্কাইভ হয়েছে (লগইন বন্ধ)।':'আবার চালু হয়েছে।',true);draw();return true}catch(e){say($('#m'),'নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।',false);return false}}
+
+const FN2=SUPABASE_URL+'/functions/v1/admin-reset-pin';
+async function pinCall(r,a,mobile){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='login.html';return}
+ try{const body={action:a,student_id:r.uid};if(mobile)body.mobile=mobile;
+  const res=await fetch(FN2,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:SUPABASE_KEY},body:JSON.stringify(body)});const j=await res.json().catch(()=>({}));
+  if(!res.ok){say($('#m'),j.error==='Invalid mobile number'?'মোবাইল নম্বর সঠিক নয় (01XXXXXXXXX)।':j.error==='Only offline students use a PIN'?'শুধু অফলাইন শিক্ষার্থীর পিন আছে।':'কাজটি হয়নি। আবার চেষ্টা করুন।',false);return}
+  r.mobile=j.mobile;if(r.status==='pending')r.status='active';showPin(r,j);draw()}catch(e){say($('#m'),'নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।',false)}}
+function showPin(r,j){let b=document.getElementById('pinbox');if(!b){b=document.createElement('div');b.id='pinbox';b.className='card';b.style.cssText='margin-top:16px;border:2px solid #0a7;';$('#t').closest('.card').before(b)}
+ b.replaceChildren();const h=document.createElement('div');h.style.fontWeight='700';h.textContent='নতুন লগইন তথ্য — '+r.name+' ('+j.student_code+')';
+ const p=document.createElement('div');p.style.cssText='font-size:1.3em;margin:8px 0;letter-spacing:1px';p.textContent='আইডি: '+j.student_code+'   মোবাইল: '+j.mobile+'   পিন: '+j.pin;
+ const n=document.createElement('div');n.className='hint';n.textContent='এই পিন শুধু এখন দেখা যাচ্ছে, কোথাও সংরক্ষিত নেই। শিক্ষার্থীকে এখনই পাঠিয়ে দিন। পাতা রিলোড করলে মুছে যাবে।';
+ const w=document.createElement('a');w.className='btn sm';w.target='_blank';w.rel='noopener';w.textContent='WhatsApp-এ পাঠান';
+ w.href='https://wa.me/88'+j.mobile+'?text='+encodeURIComponent('Biotech Home লগইন\nআইডি: '+j.student_code+'\nমোবাইল: '+j.mobile+'\nপিন: '+j.pin+'\nলগইন: https://biotechhome.github.io/biotech-home-web/login.html');
+ const c=document.createElement('button');c.className='btn sm ghost';c.type='button';c.style.marginLeft='8px';c.textContent='লুকান';c.onclick=()=>b.remove();
+ b.append(h,p,n,w,c);b.scrollIntoView({behavior:'smooth',block:'center'})}
 function actions(r){const c=document.createElement('td');c.style.whiteSpace='nowrap';
  const b1=document.createElement('button');b1.className='btn sm ghost';b1.type='button';b1.textContent=r.status==='blocked'?'ফেরান':'আর্কাইভ';
  b1.onclick=async()=>{const arch=r.status!=='blocked';if(arch&&!confirm('"'+r.name+'" ('+r.id+') আর্কাইভ করবেন? সে আর লগইন করতে পারবে না, তথ্য থেকে যাবে।'))return;b1.disabled=true;await act(r,arch?'archive':'restore');b1.disabled=false};
  const b2=document.createElement('button');b2.className='btn sm dark';b2.type='button';b2.style.marginLeft='6px';b2.textContent='ডিলিট';
  b2.onclick=async()=>{if(!confirm('সতর্কতা: "'+r.name+'" ('+r.id+') সম্পূর্ণ মুছে যাবে — লগইন, ফি, নম্বর, উপস্থিতি, ছবি সব। এটি আর ফেরানো যাবে না।'))return;const t=prompt('নিশ্চিত করতে এই আইডিটি লিখুন: '+r.id);if(t===null)return;if(t.trim().toLowerCase()!==r.id.toLowerCase()){say($('#m'),'আইডি মেলেনি, কিছু মোছা হয়নি।',false);return}b2.disabled=true;await act(r,'delete');b2.disabled=false};
- c.append(b1,b2);return c}
+ c.append(b1,b2);
+ if(r.type==='offline'){const b3=document.createElement('button');b3.className='btn sm ghost';b3.type='button';b3.style.marginLeft='6px';b3.textContent=r.mobile?'পিন রিসেট':'মোবাইল দিন';
+  b3.onclick=async()=>{if(r.mobile){if(!confirm('"'+r.name+'" ('+r.id+') এর নতুন পিন তৈরি হবে। পুরোনো পিন আর কাজ করবে না। এগোবেন?'))return;b3.disabled=true;await pinCall(r,'reset_pin');b3.disabled=false}else{const m=prompt('"'+r.name+'" এর সঠিক মোবাইল নম্বর (01XXXXXXXXX):');if(m===null)return;b3.disabled=true;await pinCall(r,'set_mobile',m.trim());b3.disabled=false}};c.append(b3);
+  if(r.mobile){const b4=document.createElement('button');b4.className='btn sm ghost';b4.type='button';b4.style.marginLeft='6px';b4.textContent='মোবাইল বদল';b4.onclick=async()=>{const m=prompt('নতুন মোবাইল নম্বর (01XXXXXXXXX) — নতুন পিনও তৈরি হবে:',r.mobile);if(m===null)return;b4.disabled=true;await pinCall(r,'set_mobile',m.trim());b4.disabled=false};c.append(b4)}}
+ return c}
 function td(t){const c=document.createElement('td');c.textContent=t==null?'':t;return c}
 function draw(){head();filt();const n=+$('#ps').value,pages=Math.max(1,Math.ceil(VIEW.length/n));if(page>=pages)page=pages-1;const tb=$('#rows');tb.replaceChildren();
  VIEW.slice(page*n,page*n+n).forEach((r,i)=>{const tr=document.createElement('tr');[page*n+i+1,r.id,r.year,r.name,r.mobile,r.batch,r.time,r.type,r.status,r.paid,r.owe,r.last,r.att===''?'':r.att+'%',r.avg===''?'':r.avg+'%'].forEach(v=>tr.append(td(v)));tr.append(actions(r));tb.append(tr)});
