@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>প্রোমো কার্ড — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1>🖼️ কোর্সের প্রোমো কার্ড</h1><p class="sub"><a href="admin.html">← অ্যাডমিন প্যানেল</a> · হোম পেজের "কোর্স" অংশের ওপরে ছবি/বিজ্ঞাপন ভিডিও দেখাবে</p></div>
+<div id="m" class="msg" style="position:sticky;top:70px;z-index:20"></div>
+<div class="card"><h2 style="margin-top:0">নতুন কার্ড</h2><form id="f">
+<div class="two"><div><label>ধরন</label><select id="k"><option value="image">🖼️ ফটো কার্ড</option><option value="video">🎬 বিজ্ঞাপনের ভিডিও (YouTube)</option></select></div><div><label>শিরোনাম</label><input id="t" maxlength="120" placeholder="যেমন: HSC 2028 নতুন ব্যাচ শুরু"></div></div>
+<div id="iv"><label>ছবি (JPG/PNG/WebP, সর্বোচ্চ ৫ MB)</label><input id="fl" type="file" accept="image/png,image/jpeg,image/webp"></div>
+<div id="yv" hidden><label>YouTube লিংক</label><input id="y" placeholder="https://youtu.be/XXXXXXXXXXX"></div>
+<label>ছোট বর্ণনা (ঐচ্ছিক)</label><input id="c" maxlength="300">
+<label>ক্লিকে কোথায় যাবে? (ঐচ্ছিক, https:// দিয়ে শুরু)</label><input id="u" maxlength="300" placeholder="https://wa.me/8801710056730">
+<button class="btn" style="margin-top:12px" id="go" type="submit">যোগ করুন</button></form></div>
+<div class="card" style="margin-top:18px"><h2 style="margin-top:0">এখন যা আছে <span id="cnt" style="font-weight:400;font-size:16px"></span></h2><div id="l"></div></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'};let BUSY=false;
+function note(t,ok){say($('#m'),t,ok);$('#m').scrollIntoView({block:'nearest',behavior:'smooth'})}
+const fail=t=>note(t||'কাজটি হয়নি। আবার চেষ্টা করুন।',false);
+function ytId(s){s=(s||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;const m=s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);return m?m[1]:null}
+const pub=p=>SUPABASE_URL+'/storage/v1/object/public/promo-images/'+p;
+$('#k').onchange=()=>{const v=$('#k').value==='video';$('#yv').hidden=!v;$('#iv').hidden=v};
+function btn(t,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn sm '+cls;b.style.marginLeft='6px';b.textContent=t;b.onclick=async()=>{b.disabled=true;try{await fn()}finally{b.disabled=false}};return b}
+async function load(){const box=$('#l');box.textContent='লোড হচ্ছে…';const {data,error}=await sb.from('site_promos').select('id,kind,title,caption,youtube_id,image_path,link_url,sort_order,is_active').order('sort_order').order('created_at');
+ if(error){box.textContent='লোড করা যায়নি।';return}box.replaceChildren();$('#cnt').textContent='— মোট '+data.length+' টি';
+ if(!data.length){box.textContent='এখনও কিছু নেই। উপরের ফর্ম থেকে যোগ করুন।';return}
+ data.forEach((r,i)=>{const row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)';
+  const im=document.createElement('img');im.style.cssText='width:96px;height:56px;object-fit:cover;border-radius:8px;background:#000';im.alt='';im.src=r.kind==='image'?pub(r.image_path):'https://i.ytimg.com/vi/'+r.youtube_id+'/mqdefault.jpg';
+  const t=document.createElement('div');t.style.flex='1 1 220px';const b=document.createElement('b');b.textContent=(i+1)+'. '+r.title;const sm=document.createElement('div');sm.className='hint';sm.style.margin='2px 0 0';sm.textContent=(r.kind==='image'?'🖼️ ছবি':'🎬 ভিডিও')+(r.is_active?'':' · লুকানো');t.append(b,sm);
+  row.append(im,t,btn('↑','ghost',async()=>{if(i>0)await swap(data,i,i-1)}),btn('↓','ghost',async()=>{if(i<data.length-1)await swap(data,i,i+1)}),
+   btn(r.is_active?'লুকান':'দেখান','ghost',async()=>{const {error}=await sb.from('site_promos').update({is_active:!r.is_active}).eq('id',r.id);error?fail():load()}),
+   btn('ডিলিট','dark',async()=>{if(!confirm('"'+r.title+'" মুছবেন?'))return;if(r.image_path)await sb.storage.from('promo-images').remove([r.image_path]);const {error}=await sb.from('site_promos').delete().eq('id',r.id);error?fail():load()}));box.append(row)})}
+async function swap(d,i,j){const a=d.slice();[a[i],a[j]]=[a[j],a[i]];for(let n=0;n<a.length;n++){const {error}=await sb.from('site_promos').update({sort_order:n+1}).eq('id',a[n].id);if(error){fail();return}}load()}
+$('#f').onsubmit=async e=>{e.preventDefault();if(BUSY)return;const kind=$('#k').value,title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
+ const link=$('#u').value.trim();if(link&&!/^https:\/\//.test(link)){fail('লিংক https:// দিয়ে শুরু হতে হবে।');return}
+ let yt=null,file=null,ext='';
+ if(kind==='video'){yt=ytId($('#y').value);if(!yt){fail('YouTube লিংক সঠিক নয়।');return}}
+ else{file=$('#fl').files[0];if(!file){fail('ছবি বাছুন।');return}ext=(file.name.split('.').pop()||'').toLowerCase();if(!MIME[ext]){fail('শুধু JPG, PNG বা WebP চলবে।');return}if(file.size>5242880){fail('ছবি ৫ MB-এর বেশি।');return}}
+ BUSY=true;$('#go').disabled=true;let path=null;
+ try{if(file){path=crypto.randomUUID()+'.'+ext;const {error}=await sb.storage.from('promo-images').upload(path,file,{contentType:MIME[ext],upsert:false,cacheControl:'86400'});if(error)throw error}
+  const {data:mx}=await sb.from('site_promos').select('sort_order').order('sort_order',{ascending:false}).limit(1);
+  const {error}=await sb.from('site_promos').insert({kind,title,caption:$('#c').value.trim()||null,youtube_id:yt,image_path:path,link_url:link||null,sort_order:((mx&&mx[0]&&mx[0].sort_order)||0)+1});
+  if(error)throw error;note('✔ যোগ হয়েছে।',true);$('#f').reset();$('#k').onchange();load()}
+ catch(err){if(path)await sb.storage.from('promo-images').remove([path]);fail('যোগ করা যায়নি।')}finally{BUSY=false;$('#go').disabled=false}};
+(async()=>{const me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}load()})();
+</script></body></html>

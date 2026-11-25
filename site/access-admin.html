@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>কনটেন্ট অ্যাক্সেস — Biotech Home</title><link rel="icon" href="assets/favicon.png"><link rel="stylesheet" href="css/style.css"><script>try{var t=localStorage.getItem("bh-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
+<nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
+
+<main class="wrap" style="padding:20px 20px 40px"><div class="pagehead"><h1>🔐 কনটেন্ট অ্যাক্সেস</h1><p class="sub"><a href="admin.html">← অ্যাডমিন প্যানেল</a> · কোন কোর্সের কনটেন্ট কারা, কতদিন দেখতে পাবে</p></div>
+<div id="m" class="msg" style="position:sticky;top:70px;z-index:20"></div>
+<div class="card"><label style="margin-top:0">কোন কোর্স?</label><select id="cs"></select><div class="hint" id="ch"></div></div>
+
+<div class="card" style="margin-top:18px"><h2 style="margin-top:0">নতুন অনুমতি দিন</h2>
+<div class="two"><div><label>কাকে?</label><select id="sc"><option value="batch">একটি ব্যাচকে</option><option value="online">সব অনলাইন শিক্ষার্থীকে</option><option value="offline">সব অফলাইন শিক্ষার্থীকে</option><option value="student">একজন শিক্ষার্থীকে</option></select></div>
+<div><label>মেয়াদ (কতদিন দেখতে পাবে)</label><select id="ex"><option value="">মেয়াদ নেই (যতদিন আমি বন্ধ না করি)</option><option value="30d">৩০ দিন</option><option value="3m">৩ মাস</option><option value="6m">৬ মাস</option><option value="12m">১ বছর</option><option value="date">নির্দিষ্ট তারিখ পর্যন্ত…</option></select></div></div>
+<div id="rb"><label>ব্যাচ</label><select id="bt"></select></div>
+<div id="rs" hidden><label>শিক্ষার্থী খুঁজুন (নাম / আইডি / মোবাইল)</label><input id="sq" autocomplete="off" placeholder="যেমন: 28-27"><select id="sr" size="5" style="margin-top:6px"></select></div>
+<div id="rd" hidden><label>শেষ তারিখ (ওই দিন রাত পর্যন্ত চলবে)</label><input id="dt" type="date"></div>
+<label>নোট (শুধু আপনার জন্য, ঐচ্ছিক)</label><input id="nt" maxlength="200" placeholder="যেমন: শনি সিরিজ ২০২৮">
+<button class="btn" style="margin-top:12px" id="add" type="button">অনুমতি দিন</button>
+<div class="hint">বন্ধ করলে বা মেয়াদ শেষ হলে সেই মুহূর্ত থেকে শিক্ষার্থী আর ওই কোর্সের কনটেন্ট খুলতে পারবে না (খোলা পাতা রিফ্রেশ করলেই বন্ধ)।</div></div>
+
+<div class="card" style="margin-top:18px"><h2 style="margin-top:0">এই কোর্সে এখন যাদের অনুমতি আছে <span id="cnt" style="font-weight:400;font-size:16px"></span></h2><div id="l"></div></div></main>
+<script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
+let CID='',COURSES=[],SEL=null;
+const bn=n=>Number(n).toLocaleString('bn-BD');
+function note(t,ok){say($('#m'),t,ok);$('#m').scrollIntoView({block:'nearest',behavior:'smooth'})}
+const fail=t=>note(t||'কাজটি হয়নি। আবার চেষ্টা করুন।',false);
+function endOf(d){return new Date(d+'T23:59:59+06:00').toISOString()}
+function addTime(base,code){const d=new Date(base);if(code==='30d')d.setDate(d.getDate()+30);else if(code==='3m')d.setMonth(d.getMonth()+3);else if(code==='6m')d.setMonth(d.getMonth()+6);else if(code==='12m')d.setFullYear(d.getFullYear()+1);return d.toISOString()}
+function fmt(iso){return new Date(iso).toLocaleDateString('bn-BD',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Dhaka'})}
+function sync(){const v=$('#sc').value;$('#rb').hidden=v!=='batch';$('#rs').hidden=v!=='student';$('#rd').hidden=$('#ex').value!=='date'}
+$('#sc').onchange=sync;$('#ex').onchange=sync;
+async function loadCourses(){const {data}=await sb.from('courses').select('id,title,is_paid').order('created_at',{ascending:false});COURSES=data||[];const s=$('#cs');s.replaceChildren();
+ COURSES.forEach(c=>s.append(new Option(c.title+(c.is_paid?' (পেইড)':' (ফ্রি)'),c.id)));
+ if(!COURSES.length){$('#l').textContent='আগে কনটেন্ট আপলোড পাতা থেকে একটি কোর্স তৈরি করুন।';return}
+ CID=s.value;pick()}
+function pick(){CID=$('#cs').value;const c=COURSES.find(x=>x.id===CID);$('#ch').textContent=c&&!c.is_paid?'এটি ফ্রি কোর্স — সব সক্রিয় শিক্ষার্থী দেখতে পায়। নির্দিষ্ট ব্যাচ/শিক্ষার্থীর জন্য সীমিত করতে "কোর্স ও ব্যাচ" পাতা থেকে কোর্সটি পেইড করুন।':'পেইড কোর্স — নিচে যাদের অনুমতি দেবেন শুধু তারাই দেখবে (আর আপনি)।';load()}
+$('#cs').onchange=pick;
+async function loadBatches(){const {data}=await sb.from('batches').select('id,name,session_year').order('session_year',{ascending:false}).order('name');const s=$('#bt');s.replaceChildren();(data||[]).forEach(b=>s.append(new Option(b.name+(b.session_year?' ('+b.session_year+')':''),b.id)))}
+let T=0;$('#sq').oninput=()=>{clearTimeout(T);T=setTimeout(async()=>{const q=$('#sq').value.trim().replace(/[%,()]/g,'');const s=$('#sr');s.replaceChildren();if(q.length<2)return;
+ const {data}=await sb.from('profiles').select('id,full_name,student_code,mobile').neq('role','admin').or('full_name.ilike.%'+q+'%,student_code.ilike.%'+q+'%,mobile.ilike.%'+q+'%').limit(20);
+ (data||[]).forEach(p=>s.append(new Option((p.student_code||'—')+' · '+p.full_name+(p.mobile?' · '+p.mobile:''),p.id)));SEL=null},300)};
+$('#sr').onchange=()=>{SEL=$('#sr').value};
+function btn(t,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn sm '+cls;b.style.marginLeft='6px';b.textContent=t;b.onclick=async()=>{b.disabled=true;try{await fn()}finally{b.disabled=false}};return b}
+async function load(){const box=$('#l');box.textContent='লোড হচ্ছে…';
+ const {data,error}=await sb.from('course_grants').select('id,scope,batch_id,student_type,student_id,expires_at,is_active,note,created_at,batches(name,session_year),profiles(full_name,student_code)').eq('course_id',CID).order('created_at');
+ if(error){box.textContent='লোড করা যায়নি।';return}
+ box.replaceChildren();$('#cnt').textContent='— মোট '+bn(data.length)+' টি';
+ if(!data.length){box.textContent='এখনও কাউকে অনুমতি দেওয়া হয়নি।';return}
+ const now=Date.now();
+ data.forEach(g=>{const who=g.scope==='batch'?'ব্যাচ: '+(g.batches?g.batches.name+(g.batches.session_year?' ('+g.batches.session_year+')':''):'—'):g.scope==='type'?(g.student_type==='online'?'সব অনলাইন শিক্ষার্থী':'সব অফলাইন শিক্ষার্থী'):'শিক্ষার্থী: '+(g.profiles?(g.profiles.student_code||'')+' · '+g.profiles.full_name:'—');
+  const exp=g.expires_at?new Date(g.expires_at).getTime():null;const over=exp!==null&&exp<=now;
+  const st=!g.is_active?'⛔ বন্ধ':over?'⌛ মেয়াদ শেষ':'✔ চালু';
+  const row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)';
+  const t=document.createElement('div');t.style.flex='1 1 260px';const b=document.createElement('b');b.textContent=who;const sm=document.createElement('div');sm.className='hint';sm.style.margin='2px 0 0';
+  sm.textContent=st+' · '+(g.expires_at?'মেয়াদ: '+fmt(g.expires_at)+' পর্যন্ত':'মেয়াদ নেই')+(g.note?' · '+g.note:'');t.append(b,sm);row.append(t);
+  const sel=document.createElement('select');sel.style.cssText='width:auto;padding:6px 8px;font-size:15px';[['','মেয়াদ বদল…'],['none','মেয়াদ নেই'],['30d','+৩০ দিন'],['3m','+৩ মাস'],['6m','+৬ মাস'],['12m','+১ বছর'],['date','তারিখ দিন…']].forEach(([v,l])=>sel.append(new Option(l,v)));
+  sel.onchange=async()=>{const v=sel.value;if(!v)return;let val;if(v==='none')val=null;else if(v==='date'){const d=window.prompt('শেষ তারিখ (YYYY-MM-DD):',(g.expires_at||'').slice(0,10));if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d)){sel.value='';return}val=endOf(d)}else val=addTime(Math.max(now,exp||0),v);
+   const {error}=await sb.from('course_grants').update({expires_at:val,is_active:true}).eq('id',g.id);error?fail():(note('মেয়াদ বদলানো হয়েছে।',true),load())};
+  row.append(sel,btn(g.is_active?'বন্ধ করুন':'চালু করুন','ghost',async()=>{const {error}=await sb.from('course_grants').update({is_active:!g.is_active}).eq('id',g.id);error?fail():load()}),
+   btn('মুছুন','dark',async()=>{if(!confirm('"'+who+'" এর অনুমতি মুছবেন?'))return;const {error}=await sb.from('course_grants').delete().eq('id',g.id);error?fail():load()}));box.append(row)})}
+$('#add').onclick=async()=>{if(!CID){fail('কোর্স বাছুন।');return}const v=$('#sc').value;const row={course_id:CID,note:$('#nt').value.trim()||null};
+ if(v==='batch'){if(!$('#bt').value){fail('ব্যাচ বাছুন।');return}row.scope='batch';row.batch_id=$('#bt').value}
+ else if(v==='student'){if(!$('#sr').value){fail('তালিকা থেকে শিক্ষার্থী বাছুন।');return}row.scope='student';row.student_id=$('#sr').value}
+ else{row.scope='type';row.student_type=v}
+ const e=$('#ex').value;if(e==='date'){if(!$('#dt').value){fail('শেষ তারিখ দিন।');return}row.expires_at=endOf($('#dt').value)}else if(e)row.expires_at=addTime(Date.now(),e);
+ const {error}=await sb.from('course_grants').insert(row);if(error){fail();return}note('✔ অনুমতি দেওয়া হয়েছে।',true);$('#nt').value='';load()};
+(async()=>{const me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}sync();await loadBatches();await loadCourses()})();
+</script></body></html>

@@ -4,7 +4,7 @@
 .it{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;padding:10px 8px;border-radius:10px;cursor:pointer;color:inherit}.it:hover{background:rgba(0,0,0,.05)}.it.on{background:rgba(229,25,25,.1);font-weight:700}
 .vw{position:relative;min-height:320px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .vw iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:12px;background:#000}.vw canvas{width:100%;height:auto;display:block;margin:0 auto 10px;border-radius:6px;background:#fff}
-.vw .nt{width:100%;height:78vh;border:1px solid var(--line);border-radius:12px;background:#fff}
+.vw .nt.big{height:86vh}.vw .nt{width:100%;height:78vh;border:1px solid var(--line);border-radius:12px;background:#fff}
 .wmk{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden}
 .wmk span{position:absolute;white-space:nowrap;font-size:14px;font-weight:700;color:rgba(120,120,120,.28);transform:rotate(-24deg)}
 .vw.blur>*:not(.wmk){filter:blur(18px)}
@@ -18,7 +18,7 @@
 <div class="card"><div id="vw" class="vw"><div class="hint">বাঁ দিক থেকে একটি কনটেন্ট বাছুন।</div></div></div></div></main>
 <script src="js/vendor/supabase.js"></script><script src="js/vendor/pdf.min.js"></script><script src="js/app.js"></script><script>
 const FN=SUPABASE_URL+'/functions/v1/content-access';
-const KIND={video:'🎬',book:'📘',note:'📝',mindmap:'🧠'};
+const KIND={video:'🎬',book:'📘',note:'📝',mindmap:'🧠',bundle:'📁'};
 const CID=new URLSearchParams(location.search).get('id')||'';
 let ITEMS=[],TOKEN=0;
 const vw=$('#vw');
@@ -41,12 +41,19 @@ async function openItem(it,btn){const my=++TOKEN;document.querySelectorAll('.it'
  catch(e){if(my===TOKEN){vw.replaceChildren();msg('নেটওয়ার্ক সমস্যা। আবার চেষ্টা করুন।',false)}return}
  vw.replaceChildren();
  try{
+  if(j.kind==='bundle'){await showBundle(it.id,j,t,my);return}
   if(j.youtube_id){const f=document.createElement('iframe');f.dataset.yt='1';f.allow='encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;f.referrerPolicy='strict-origin-when-cross-origin';
    f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(j.youtube_id)+'?rel=0&modestbranding=1&disablekb=1&iv_load_policy=3&playsinline=1';vw.append(f);wm(vw,j.watermark);return}
   if(j.ext==='pdf'){await showPdf(j,my);return}
   if(j.ext==='html'){const tx=await (await fetch(j.url)).text();if(my!==TOKEN)return;const f=document.createElement('iframe');f.className='nt';f.setAttribute('sandbox','allow-scripts');f.srcdoc=tx;vw.append(f);wm(vw,j.watermark);return}
   const b=await (await fetch(j.url)).blob();if(my!==TOKEN)return;const bm=await createImageBitmap(b);const c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const x=c.getContext('2d');x.drawImage(bm,0,0);stamp(x,c.width,c.height,j.watermark);vw.append(c);
  }catch(e){vw.replaceChildren();msg('কনটেন্ট খোলা যায়নি।',false)}}
+async function showBundle(id,j,t,my){
+ if(!('serviceWorker' in navigator)){msg('এই ব্রাউজারে ফোল্ডার-কনটেন্ট খোলে না। Chrome বা Edge ব্যবহার করুন।',false);return}
+ await navigator.serviceWorker.register('sw.js');const reg=await navigator.serviceWorker.ready;if(my!==TOKEN)return;
+ if(reg.active)reg.active.postMessage({type:'purge'});
+ const f=document.createElement('iframe');f.className='nt big';f.setAttribute('sandbox','allow-scripts allow-same-origin');f.referrerPolicy='no-referrer';
+ f.src=new URL('_b/'+id+'/'+(t||'anon')+'/'+j.entry,location.href).href;vw.append(f);wm(vw,j.watermark)}
 async function showPdf(j,my){const buf=await (await fetch(j.url)).arrayBuffer();if(my!==TOKEN)return;
  const doc=await pdfjsLib.getDocument({data:buf,disableRange:true,enableXfa:false,isEvalSupported:false}).promise;if(my!==TOKEN)return;
  const p1=await doc.getPage(1);const wv=Math.min(vw.clientWidth||800,1000);const base=p1.getViewport({scale:1});const sc=wv/base.width;

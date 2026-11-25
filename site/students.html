@@ -12,7 +12,8 @@
 <div><label>সময়</label><select id="ft"><option value="">সব</option></select></div>
 <div><label>অবস্থা</label><select id="fst"><option value="">সব</option><option value="active">active</option><option value="pending">pending</option><option value="blocked">blocked</option></select></div>
 <div><label>ধরন</label><select id="fty"><option value="">সব</option><option value="offline">offline</option><option value="online">online</option></select></div>
-<div><label>পেমেন্ট (সর্বশেষ মাস)</label><select id="ffe"><option value="">সব</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option><option value="none">রেকর্ড নেই</option></select></div>
+<div><label>পেমেন্টের মাস</label><select id="fm"><option value="">সর্বশেষ মাস</option></select></div>
+<div><label>পেমেন্ট অবস্থা</label><select id="ffe"><option value="">সব</option><option value="paid">Paid</option><option value="partial">Partial</option><option value="due">Due</option><option value="none">রেকর্ড নেই</option></select></div>
 <div><label>প্রতি পাতায়</label><select id="ps"><option>25</option><option selected>50</option><option>100</option><option>500</option></select></div></div>
 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px"><button class="btn sm" id="rs" type="button">ফিল্টার মুছুন</button><button class="btn sm dark" id="csv" type="button">CSV ডাউনলোড</button><span class="hint" id="cnt" style="margin:0"></span></div>
 <div class="hint">কলামের নামে ক্লিক করলে সাজবে (ছোট→বড়, আবার ক্লিক করলে বড়→ছোট)। একাধিক কলামে সাজাতে Shift চেপে ক্লিক করুন।</div></div>
@@ -22,7 +23,7 @@
 const COLS=[['#','',0],['id','আইডি','s'],['year','সেশন','n'],['name','নাম','s'],['mobile','মোবাইল','s'],['batch','ব্যাচ','s'],['time','সময়','s'],['type','ধরন','s'],['status','অবস্থা','s'],['paid','পরিশোধিত মাস','n'],['owe','বাকি/আংশিক','n'],['last','সর্বশেষ পেমেন্ট','s'],['att','উপস্থিতি %','n'],['avg','গড় নম্বর %','n'],['act','কাজ','']];
 const FN=SUPABASE_URL+'/functions/v1/admin-student-action';
 const MORD=['January','February','March','April','May','June','July','August','September','October','November','December'];
-let ALL=[],VIEW=[],sorts=[['id',1]],page=0;
+let ALL=[],VIEW=[],sorts=[['id',1]],page=0,MSEL='';
 const col=new Intl.Collator('bn',{numeric:true,sensitivity:'base'});
 function cmp(a,b,k){const x=a[k],y=b[k];if(x===''||x==null){return(y===''||y==null)?0:1}if(y===''||y==null)return -1;return typeof x==='number'&&typeof y==='number'?x-y:col.compare(String(x),String(y))}
 async function all(q){const out=[];for(let f=0;;f+=1000){const {data,error}=await q().range(f,f+999);if(error)throw error;out.push(...data);if(data.length<1000)break}return out}
@@ -38,13 +39,17 @@ async function init(){const me=await requireLogin();if(!me)return;if(me.role!=='
   at.forEach(r=>{const a=A[r.student_id]=A[r.student_id]||[0,0];a[1]++;if(r.status==='present')a[0]++});
   mk.forEach(r=>{if(!r.present||!r.exams)return;const a=K[r.student_id]=K[r.student_id]||[0,0];a[0]+=r.marks||0;a[1]+=r.exams.max_marks});
   ALL=ps.map(p=>{const f=(F[p.id]||[]).slice().sort((x,y)=>x.fee_year-y.fee_year||MORD.indexOf(x.fee_month)-MORD.indexOf(y.fee_month));const l=f[f.length-1];const a=A[p.id],k=K[p.id];
-   const code=p.student_code||'';return{uid:p.id,id:code,year:p.session_year||'',name:p.full_name,mobile:p.mobile||'',batch:(p.batch_members||[]).map(b=>b.batches&&b.batches.name).filter(Boolean).join(', '),time:p.class_time||'',type:p.student_type,status:p.status,
+   const code=p.student_code||'';const fm={};f.forEach(x=>{fm[x.fee_year+'|'+x.fee_month]=x.status});return{fm,uid:p.id,id:code,year:p.session_year||'',name:p.full_name,mobile:p.mobile||'',batch:(p.batch_members||[]).map(b=>b.batches&&b.batches.name).filter(Boolean).join(', '),time:p.class_time||'',type:p.student_type,status:p.status,
    paid:f.filter(x=>x.status==='paid').length,owe:f.filter(x=>x.status!=='paid').length,last:l?l.fee_month.slice(0,3)+' '+l.fee_year+': '+l.status:'',lastS:l?l.status:'none',
-   att:a&&a[1]?Math.round(a[0]*1000/a[1])/10:'',avg:k&&k[1]?Math.round(k[0]*1000/k[1])/10:''}});
+   last0:l?l.fee_month.slice(0,3)+' '+l.fee_year+': '+l.status:'',lastS0:l?l.status:'none',att:a&&a[1]?Math.round(a[0]*1000/a[1])/10:'',avg:k&&k[1]?Math.round(k[0]*1000/k[1])/10:''}});
+  {const ms=new Set();fe.forEach(x=>ms.add(x.fee_year+'|'+x.fee_month));[...ms].sort((a,b)=>{const[ya,ma]=a.split('|'),[yb,mb]=b.split('|');return yb-ya||MORD.indexOf(mb)-MORD.indexOf(ma)}).forEach(k=>{const[y,m]=k.split('|');$('#fm').append(new Option(m+' '+y,k))})}
   [['fs','year'],['fb','batch'],['ft','time']].forEach(([s,k])=>{[...new Set(ALL.flatMap(r=>k==='batch'?r.batch.split(', '):[r[k]]).filter(Boolean))].sort(col.compare).forEach(v=>$('#'+s).append(new Option(v,v)))});
   draw()}catch(e){say($('#m'),'তথ্য আনা যায়নি। আবার চেষ্টা করুন।',false)}}
 function head(){const h=$('#hr');h.replaceChildren();COLS.forEach(([k,t,ty])=>{const th=document.createElement('th');th.textContent=t||'#';if(ty){th.style.cursor='pointer';th.style.whiteSpace='nowrap';const i=sorts.findIndex(s=>s[0]===k);if(i>=0)th.textContent+=(sorts[i][1]>0?' ▲':' ▼')+(sorts.length>1?(i+1):'');th.onclick=e=>{const j=sorts.findIndex(s=>s[0]===k);if(e.shiftKey){if(j>=0)sorts[j][1]*=-1;else sorts.push([k,1])}else sorts=j===0&&sorts.length===1?[[k,-sorts[0][1]]]:[[k,j>=0?-sorts[j][1]:1]];page=0;draw()}}h.append(th)})}
-function filt(){const q=norm($('#q').value).trim(),fs=$('#fs').value,fb=$('#fb').value,ft=$('#ft').value,st=$('#fst').value,ty=$('#fty').value,fe=$('#ffe').value;
+function applyMonth(){const k=$('#fm').value;COLS.find(c=>c[0]==='last')[1]=k?'পেমেন্ট ('+k.replace('|',' ')+')':'সর্বশেষ পেমেন্ট';
+ if(k){const lab={paid:'paid',partial:'partial',due:'due'};ALL.forEach(r=>{const st=r.fm[k];r.lastS=st||'none';r.last=st?k.split('|')[1].slice(0,3)+' '+k.split('|')[0]+': '+lab[st]:'রেকর্ড নেই'})}
+ else ALL.forEach(r=>{r.lastS=r.lastS0;r.last=r.last0})}
+function filt(){applyMonth();const q=norm($('#q').value).trim(),fs=$('#fs').value,fb=$('#fb').value,ft=$('#ft').value,st=$('#fst').value,ty=$('#fty').value,fe=$('#ffe').value;
  VIEW=ALL.filter(r=>(!q||norm(r.name+' '+r.mobile+' '+r.id).includes(q))&&(!fs||String(r.year)===fs)&&(!fb||r.batch.split(', ').includes(fb))&&(!ft||r.time===ft)&&(!st||r.status===st)&&(!ty||r.type===ty)&&(!fe||r.lastS===fe));
  VIEW.sort((a,b)=>{for(const[k,d]of sorts){const c=cmp(a,b,k);if(c)return c*d}return 0})}
 async function act(r,a){const {data:{session}}=await sb.auth.getSession();if(!session){location.href='login.html';return false}
@@ -78,12 +83,12 @@ function actions(r){const c=document.createElement('td');c.style.whiteSpace='now
   if(r.mobile){const b4=document.createElement('button');b4.className='btn sm ghost';b4.type='button';b4.style.marginLeft='6px';b4.textContent='মোবাইল বদল';b4.onclick=async()=>{const m=prompt('নতুন মোবাইল নম্বর (01XXXXXXXXX) — নতুন পিনও তৈরি হবে:',r.mobile);if(m===null)return;b4.disabled=true;await pinCall(r,'set_mobile',m.trim());b4.disabled=false};c.append(b4)}}
  return c}
 function td(t){const c=document.createElement('td');c.textContent=t==null?'':t;return c}
-function draw(){head();filt();const n=+$('#ps').value,pages=Math.max(1,Math.ceil(VIEW.length/n));if(page>=pages)page=pages-1;const tb=$('#rows');tb.replaceChildren();
+function draw(){applyMonth();head();filt();const n=+$('#ps').value,pages=Math.max(1,Math.ceil(VIEW.length/n));if(page>=pages)page=pages-1;const tb=$('#rows');tb.replaceChildren();
  VIEW.slice(page*n,page*n+n).forEach((r,i)=>{const tr=document.createElement('tr');[page*n+i+1,r.id,r.year,r.name,r.mobile,r.batch,r.time,r.type,r.status,r.paid,r.owe,r.last,r.att===''?'':r.att+'%',r.avg===''?'':r.avg+'%'].forEach(v=>tr.append(td(v)));tr.append(actions(r));tb.append(tr)});
  $('#cnt').textContent=VIEW.length+' জন (মোট '+ALL.length+')';$('#pg').textContent='পাতা '+(page+1)+' / '+pages;$('#pv').disabled=page===0;$('#nx').disabled=page>=pages-1}
-['q'].forEach(i=>$('#'+i).oninput=()=>{page=0;draw()});['fs','fb','ft','fst','fty','ffe','ps'].forEach(i=>$('#'+i).onchange=()=>{page=0;draw()});
+['q'].forEach(i=>$('#'+i).oninput=()=>{page=0;draw()});['fs','fb','ft','fst','fty','fm','ffe','ps'].forEach(i=>$('#'+i).onchange=()=>{page=0;draw()});
 $('#pv').onclick=()=>{page--;draw()};$('#nx').onclick=()=>{page++;draw()};
-$('#rs').onclick=()=>{['q','fs','fb','ft','fst','fty','ffe'].forEach(i=>$('#'+i).value='');sorts=[['id',1]];page=0;draw()};
+$('#rs').onclick=()=>{['q','fs','fb','ft','fst','fty','fm','ffe'].forEach(i=>$('#'+i).value='');sorts=[['id',1]];page=0;draw()};
 $('#csv').onclick=()=>{const e=v=>{v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};const ks=COLS.slice(1,-1);const t='\ufeff'+[ks.map(c=>e(c[1])).join(',')].concat(VIEW.map(r=>ks.map(c=>e(r[c[0]])).join(','))).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='students.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 init();
 </script></body></html>

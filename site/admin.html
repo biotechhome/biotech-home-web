@@ -10,11 +10,13 @@
 <a class="card tile" href="#new" data-go="new"><div class="ic">➕</div><b>নতুন শিক্ষার্থী</b><span>আইডি ও পিন নিজে তৈরি হবে</span></a>
 <a class="card tile" href="students.html"><div class="ic">📋</div><b>শিক্ষার্থী তালিকা</b><span>সার্চ, সর্টিং, পিন রিসেট, আর্কাইভ</span></a>
 <a class="card tile" href="courses-admin.html"><div class="ic">📚</div><b>কোর্স ও ব্যাচ</b><span>কোর্স, ব্যাচ, কাকে কোন কোর্স</span></a>
-<a class="card tile" href="content-admin.html"><div class="ic">📤</div><b>কনটেন্ট আপলোড</b><span>ভিডিও, বই, নোট, মাইন্ড ম্যাপ</span></a>
+<a class="card tile" href="content-admin.html"><div class="ic">📤</div><b>কনটেন্ট আপলোড</b><span>ভিডিও, বই, নোট, পুরো ফোল্ডার</span></a>
+<a class="card tile" href="access-admin.html"><div class="ic">🔐</div><b>কনটেন্ট অ্যাক্সেস</b><span>কোন ব্যাচ/রোল কতদিন দেখবে</span></a>
+<a class="card tile" href="promos-admin.html"><div class="ic">🖼️</div><b>কোর্সের প্রোমো কার্ড</b><span>ফটোকার্ড ও বিজ্ঞাপন ভিডিও</span></a>
 <a class="card tile" href="#news" data-go="news"><div class="ic">📰</div><b>নিউজ / নোটিশ / ইভেন্ট</b><span>হোম পেজের ঘোষণা</span></a>
 <a class="card tile" href="#merit" data-go="merit"><div class="ic">🏆</div><b>মেধাতালিকা প্রকাশ</b><span>কোন পরীক্ষার ফল দেখাবেন</span></a>
 <a class="card tile" href="password.html"><div class="ic">🔑</div><b>পাসওয়ার্ড পরিবর্তন</b><span>অ্যাডমিন লগইনের পাসওয়ার্ড</span></a>
-<a class="card tile" href="#letters" data-go="letters"><div class="ic">✉️</div><b>খোলা চিঠির মতামত</b><span>লুকান বা মুছুন</span></a>
+<a class="card tile" href="#letters" data-go="letters"><div class="ic">✉️</div><b>খোলা চিঠি</b><span id="ltn">শুধু আপনি দেখেন, চাইলে প্রকাশ</span></a>
 </div>
 <div id="back" hidden style="margin-bottom:14px"><a href="#" id="bk" class="btn sm ghost">← সব কাজের তালিকায় ফিরুন</a></div>
 <div class="card asec" data-sec="new" style="margin-bottom:20px"><h2 style="margin-top:0">নতুন শিক্ষার্থী (অফলাইন)</h2>
@@ -29,10 +31,10 @@
 <label>টাকার পরিমাণ (ঐচ্ছিক)</label><input id="fa" inputmode="numeric" maxlength="6"></div>
 <button class="btn" style="margin-top:16px" id="go">সংরক্ষণ করুন</button><div id="m" class="msg"></div></form>
 <div id="done" class="card" style="margin-top:14px;display:none;border-color:var(--gold)"><b>তৈরি হয়েছে ✔</b><div id="dtext" style="font-size:20px;margin:8px 0"></div><div class="hint">এই পিন আর দেখা যাবে না। এখনই শিক্ষার্থীকে জানিয়ে দিন।</div><a class="btn sm" id="wa" target="_blank" rel="noopener" style="margin-top:8px">WhatsApp-এ পাঠান</a></div></div>
-<div class="card asec" data-sec="news" style="margin-bottom:20px"><h2 style="margin-top:0">ব্রেকিং নিউজ / নোটিশ / ইভেন্ট</h2><form id="pf"><div class="two"><div><label>ধরন</label><select id="pk"><option value="ticker">ব্রেকিং নিউজ (চলমান লেখা)</option><option value="notice">নোটিশ</option><option value="event">ইভেন্ট</option></select></div><div><label>তারিখ (ইভেন্টের জন্য, ঐচ্ছিক)</label><input id="pd" type="date"></div></div><label>শিরোনাম</label><input id="pt" maxlength="140"><label>বিস্তারিত (ঐচ্ছিক)</label><textarea id="pb" maxlength="1000" rows="3"></textarea><button class="btn" style="margin-top:12px" id="pg" type="submit">প্রকাশ করুন</button><div id="pm" class="msg"></div></form><div id="pl" style="margin-top:14px"></div></div>
+<div class="card asec" data-sec="news" style="margin-bottom:20px"><h2 style="margin-top:0">ঘোষণা / নোটিশ / ইভেন্ট</h2><form id="pf"><div class="two"><div><label>ধরন</label><select id="pk"><option value="ticker">ঘোষণা (ওপরের ব্যানারে একটা একটা করে ঘুরবে)</option><option value="notice">নোটিশ</option><option value="event">ইভেন্ট</option></select></div><div><label>তারিখ (ইভেন্টের জন্য, ঐচ্ছিক)</label><input id="pd" type="date"></div></div><label>শিরোনাম</label><input id="pt" maxlength="140"><label>বিস্তারিত (ঐচ্ছিক)</label><textarea id="pb" maxlength="1000" rows="3"></textarea><button class="btn" style="margin-top:12px" id="pg" type="submit">প্রকাশ করুন</button><div id="pm" class="msg"></div></form><div id="pl" style="margin-top:14px"></div></div>
 <div class="card asec" data-sec="merit" style="margin-bottom:20px"><h2 style="margin-top:0">🏆 মেধাতালিকা প্রকাশ</h2><p class="hint" style="margin-top:0">যে পরীক্ষা "প্রকাশিত" করবেন, শুধু সেটির নাম, নম্বর ও র‍্যাংক হোম পেজে সবাই দেখতে পাবে (মোবাইল বা আইডি নয়)। ডিফল্টে সব লুকানো।</p><div id="el"></div></div>
 <details class="card fold asec" data-sec="list"><summary><h2>শিক্ষার্থী তালিকা (খুলতে ক্লিক করুন)</h2></summary><div style="margin:10px 0"><a class="btn sm" href="students.html">সম্পূর্ণ টেবিল (সার্চ ও সর্টিং) →</a></div><div class="tw"> <table><thead><tr><th>আইডি</th><th>নাম</th><th>মোবাইল</th><th>ব্যাচ</th><th>সময়</th><th>ধরন</th><th>অবস্থা</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></details>
-<details class="card fold asec" data-sec="letters" open style="margin-top:20px"><summary><h2>খোলা চিঠির মতামত (লুকান / মুছুন)</h2></summary><div id="lt" style="margin-top:10px"></div></details></main>
+<details class="card fold asec" data-sec="letters" open style="margin-top:20px"><summary><h2>খোলা চিঠি — শুধু আপনি দেখছেন (প্রকাশ করলে সবাই দেখবে)</h2></summary><div id="lt" style="margin-top:10px"></div></details></main>
 <script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
 const FN=SUPABASE_URL+'/functions/v1/admin-create-student';let me,fstat='';
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -46,10 +48,12 @@ async function load(){const {data,error}=await sb.from('profiles').select('id,st
  const tb=$('#rows');tb.replaceChildren();if(error)return;
  data.forEach(r=>{const bn=(r.batch_members||[]).map(x=>x.batches&&x.batches.name).filter(Boolean).join(', ');const tr=document.createElement('tr');tr.append(td(r.student_code||'—'),td(r.full_name),td(r.mobile),td(bn),td(r.class_time),td(r.student_type==='offline'?'অফলাইন':'অনলাইন'),td(r.status==='active'?'সক্রিয়':'অপেক্ষমাণ'));
   const a=document.createElement('td');if(r.status!=='active'){const b=document.createElement('button');b.className='btn sm';b.textContent='অনুমোদন';b.onclick=async()=>{b.disabled=true;await sb.from('profiles').update({status:'active'}).eq('id',r.id);load()};a.append(b)}tr.append(a);tb.append(tr)})}
-async function loadL(){const {data}=await sb.from('open_letters').select('id,author_name,body,approved,created_at').order('created_at',{ascending:false}).limit(100);const box=$('#lt');box.replaceChildren();
- (data||[]).forEach(r=>{const d=document.createElement('div');d.className='card letter';d.style.marginBottom='10px';const b=document.createElement('b');b.textContent=r.author_name+(r.approved?' · প্রকাশিত':' · লুকানো');const p=document.createElement('p');p.textContent=r.body;d.append(b,p);
-  {const x=document.createElement('button');x.className='btn sm ghost';x.textContent=r.approved?'লুকান':'প্রকাশ করুন';x.style.margin='8px 8px 0 0';x.onclick=async()=>{await sb.from('open_letters').update({approved:!r.approved}).eq('id',r.id);loadL()};d.append(x)}
-  const y=document.createElement('button');y.className='btn sm dark';y.textContent='মুছুন';y.style.marginTop='8px';y.onclick=async()=>{await sb.from('open_letters').delete().eq('id',r.id);loadL()};d.append(y);box.append(d)});}
+async function loadL(){const {data}=await sb.from('open_letters').select('id,author_name,body,approved,created_at').order('approved').order('created_at',{ascending:false}).limit(100);const box=$('#lt');box.replaceChildren();
+ const nw=(data||[]).filter(r=>!r.approved).length;$('#ltn').textContent=nw?nw+' টি অপ্রকাশিত চিঠি':'কোনো নতুন চিঠি নেই';
+ if(!(data||[]).length){box.textContent='এখনও কোনো চিঠি আসেনি।';return}
+ (data||[]).forEach(r=>{const d=document.createElement('div');d.className='card letter';d.style.marginBottom='10px';const b=document.createElement('b');b.textContent=r.author_name+(r.approved?' · ✔ প্রকাশিত (সবাই দেখছে)':' · 🔒 শুধু আপনি দেখছেন');const sm=document.createElement('small');sm.style.cssText='display:block;color:var(--mut)';sm.textContent=new Date(r.created_at).toLocaleString('bn-BD');const p=document.createElement('p');p.textContent=r.body;d.append(b,sm,p);
+  {const x=document.createElement('button');x.className='btn sm '+(r.approved?'ghost':'');x.textContent=r.approved?'প্রকাশ বন্ধ করুন':'সবার জন্য প্রকাশ করুন';x.style.margin='8px 8px 0 0';x.onclick=async()=>{await sb.from('open_letters').update({approved:!r.approved}).eq('id',r.id);loadL()};d.append(x)}
+  const y=document.createElement('button');y.className='btn sm dark';y.textContent='মুছুন';y.style.marginTop='8px';y.onclick=async()=>{if(!confirm('চিঠিটি মুছবেন?'))return;await sb.from('open_letters').delete().eq('id',r.id);loadL()};d.append(y);box.append(d)});}
 function shrink(file){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const k=Math.min(1,640/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(b=>b?res(b):rej(),'image/jpeg',.82)};img.onerror=rej;img.src=URL.createObjectURL(file)})}
 (async()=>{me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}loadBatches();load();loadL()})();
 $('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go');$('#done').style.display='none';
@@ -68,7 +72,7 @@ $('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go');$('#d
   else say(m,j.error||'তৈরি করা যায়নি।')}catch(_){say(m,'সংযোগ সমস্যা।')}
  btn.disabled=false};
 
-const PK={ticker:'ব্রেকিং',notice:'নোটিশ',event:'ইভেন্ট'};
+const PK={ticker:'ঘোষণা',notice:'নোটিশ',event:'ইভেন্ট'};
 async function loadP(){const {data}=await sb.from('site_posts').select('id,kind,title,is_active,created_at').order('created_at',{ascending:false}).limit(100);const box=$('#pl');box.replaceChildren();(data||[]).forEach(x=>{const d=document.createElement('div');d.className='post';d.style.display='flex';d.style.gap='8px';d.style.alignItems='center';const t=document.createElement('span');t.style.flex='1';t.textContent='['+PK[x.kind]+'] '+x.title+(x.is_active?'':' (লুকানো)');
  const h=document.createElement('button');h.className='btn sm ghost';h.textContent=x.is_active?'লুকান':'প্রকাশ';h.onclick=async()=>{await sb.from('site_posts').update({is_active:!x.is_active}).eq('id',x.id);loadP()};
  const r=document.createElement('button');r.className='btn sm dark';r.textContent='মুছুন';r.onclick=async()=>{if(!confirm('মুছে ফেলবেন?'))return;await sb.from('site_posts').delete().eq('id',x.id);loadP()};d.append(t,h,r);box.append(d)})}

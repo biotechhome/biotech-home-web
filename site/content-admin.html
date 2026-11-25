@@ -10,21 +10,22 @@
 <div id="newbox" hidden style="margin-top:12px"><div class="two"><div><label>নতুন কোর্সের নাম</label><input id="ct" maxlength="120" placeholder="যেমন: HSC জীববিজ্ঞান ২০২৮"></div><div><label>ধরন</label><select id="cp"><option value="free">ফ্রি</option><option value="paid">পেইড</option></select></div></div><div id="prw" hidden><label>মূল্য (টাকা)</label><input id="cr" inputmode="numeric" maxlength="6"></div><div class="hint">নিচের ফর্মে "যোগ করুন" চাপলে কোর্সটিও তৈরি হয়ে যাবে।</div></div>
 <div class="hint" id="seerow"><a href="#" id="seeit" target="_blank">শিক্ষার্থী যেভাবে দেখবে ↗</a></div></div>
 <div class="card" style="margin-top:18px" id="addc"><h2 style="margin-top:0">২. কী যোগ করবেন?</h2><form id="f">
-<div class="two"><div><label>ধরন</label><select id="k"><option value="video">🎬 ভিডিও (YouTube লিংক)</option><option value="book">📘 বই (PDF)</option><option value="note">📝 নোট (HTML)</option><option value="mindmap">🧠 মাইন্ড ম্যাপ (ছবি/PDF/HTML)</option></select></div><div><label>শিরোনাম</label><input id="t" maxlength="160" placeholder="যেমন: অধ্যায় ১ — কোষ"></div></div>
+<div class="two"><div><label>ধরন</label><select id="k"><option value="video">🎬 ভিডিও (YouTube লিংক)</option><option value="book">📘 বই (PDF)</option><option value="note">📝 নোট (HTML)</option><option value="mindmap">🧠 মাইন্ড ম্যাপ (ছবি/PDF/HTML)</option><option value="bundle">📁 পুরো ফোল্ডার (ওয়েব-বই / HTML ফোল্ডার)</option></select></div><div><label>শিরোনাম</label><input id="t" maxlength="160" placeholder="যেমন: অধ্যায় ১ — কোষ"></div></div>
 <div id="yv"><label>YouTube লিংক (আনলিস্টেড ভিডিও ভালো)</label><input id="y" placeholder="https://youtu.be/XXXXXXXXXXX"></div>
 <div id="fv" hidden><label>ফাইল (সর্বোচ্চ ৫০ MB)</label><input id="fl" type="file"></div>
+<div id="bv" hidden><label>ফোল্ডার বাছুন (ভেতরের সব ফাইলসহ)</label><input id="bf" type="file" webkitdirectory multiple><div class="hint">ফোল্ডারের ভেতরের পাতাগুলো একটার সাথে আরেকটার লিংক থাকে, তাই পুরো ফোল্ডার একটিমাত্র আইটেম হিসেবে উঠবে। শিরোনাম ফাঁকা রাখলে ফোল্ডারের নামই শিরোনাম হবে।</div><div id="bs" class="hint" style="font-size:15px;margin-top:8px"></div><div id="bp" hidden style="margin-top:8px"><div style="height:12px;background:var(--line);border-radius:8px;overflow:hidden"><div id="bpi" style="height:100%;width:0;background:var(--red);transition:width .2s"></div></div><div id="bpt" class="hint"></div></div></div>
 <label style="display:flex;gap:8px;align-items:center;margin-top:12px"><input id="pv" type="checkbox" style="width:auto"> ফ্রি প্রিভিউ (লগইন ছাড়াই সবাই দেখতে পারবে)</label>
 <button class="btn" style="margin-top:12px" type="submit" id="go">যোগ করুন</button></form></div>
 <div class="card" style="margin-top:18px"><h2 style="margin-top:0">এই কোর্সে যা যা আছে <span id="cnt" style="font-weight:400;font-size:16px"></span></h2><div id="l"></div></div></main>
 <script src="js/vendor/supabase.js"></script><script src="js/app.js"></script><script>
-const KIND={video:'🎬 ভিডিও',book:'📘 বই',note:'📝 নোট',mindmap:'🧠 মাইন্ড ম্যাপ'};
+const KIND={video:'🎬 ভিডিও',book:'📘 বই',note:'📝 নোট',mindmap:'🧠 মাইন্ড ম্যাপ',bundle:'📁 ফোল্ডার'};
 const OK={book:['pdf'],note:['html'],mindmap:['png','jpg','jpeg','webp','pdf','html']};
 const MIME={pdf:'application/pdf',html:'text/html',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'};
 let CID='',BUSY=false;
 function note(t,ok){say($('#m'),t,ok);$('#m').scrollIntoView({block:'nearest',behavior:'smooth'})}
 const fail=t=>note(t||'কাজটি হয়নি। আবার চেষ্টা করুন।',false);
 function ytId(s){s=(s||'').trim();if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;const m=s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);return m?m[1]:null}
-function sync(){const v=$('#k').value==='video';$('#yv').hidden=!v;$('#fv').hidden=v}
+function sync(){const k=$('#k').value;$('#yv').hidden=k!=='video';$('#fv').hidden=k==='video'||k==='bundle';$('#bv').hidden=k!=='bundle'}
 $('#k').onchange=sync;sync();$('#cp').onchange=()=>{$('#prw').hidden=$('#cp').value!=='paid'};
 $('#cp').onchange=()=>{$('#prw').hidden=$('#cp').value!=='paid'};
 const NEW='__new__';
@@ -38,7 +39,7 @@ async function loadCourses(sel){const {data}=await sb.from('courses').select('id
 $('#cs').onchange=syncCourse;
 function btn(t,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn sm '+cls;b.style.marginLeft='6px';b.textContent=t;b.onclick=async()=>{b.disabled=true;try{await fn()}finally{b.disabled=false}};return b}
 async function load(){const box=$('#l');box.textContent='লোড হচ্ছে…';$('#seeit').href='course.html?id='+encodeURIComponent(CID);
- const {data,error}=await sb.from('course_items').select('id,title,kind,is_preview,is_active,sort_order,course_item_files(youtube_id,file_path)').eq('course_id',CID).order('sort_order').order('created_at');
+ const {data,error}=await sb.from('course_items').select('id,title,kind,is_preview,is_active,sort_order,course_item_files(youtube_id,file_path,bundle_path,bundle_entry)').eq('course_id',CID).order('sort_order').order('created_at');
  if(error){box.textContent='লোড করা যায়নি।';return}
  box.replaceChildren();$('#cnt').textContent='— মোট '+data.length+' টি';
  if(!data.length){box.textContent='এখনও কিছু যোগ হয়নি। উপরের ফর্ম থেকে যোগ করুন।';return}
@@ -46,7 +47,7 @@ async function load(){const box=$('#l');box.textContent='লোড হচ্ছ�
   const row=document.createElement('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)';
   const t=document.createElement('div');t.style.flex='1 1 260px';const b=document.createElement('b');b.textContent=(i+1)+'. '+r.title;
   const sm=document.createElement('div');sm.className='hint';sm.style.margin='2px 0 0';
-  const ok=f&&(f.youtube_id||f.file_path);sm.textContent=KIND[r.kind]+' · '+(ok?'✔ জমা হয়েছে'+(f.file_path?' ('+f.file_path.split('.').pop().toUpperCase()+' ফাইল)':' (YouTube)'):'⚠ ফাইল নেই')+(r.is_preview?' · ফ্রি প্রিভিউ':'')+(r.is_active?'':' · লুকানো (শিক্ষার্থী দেখবে না)');
+  const ok=f&&(f.youtube_id||f.file_path||f.bundle_path);sm.textContent=KIND[r.kind]+' · '+(ok?'✔ জমা হয়েছে'+(f.bundle_path?' (ফোল্ডার, শুরুর পাতা: '+f.bundle_entry+')':f.file_path?' ('+f.file_path.split('.').pop().toUpperCase()+' ফাইল)':' (YouTube)'):'⚠ ফাইল নেই')+(r.is_preview?' · ফ্রি প্রিভিউ':'')+(r.is_active?'':' · লুকানো (শিক্ষার্থী দেখবে না)');
   t.append(b,sm);row.append(t);
   const v=document.createElement('a');v.className='btn sm ghost';v.target='_blank';v.rel='noopener';v.href='course.html?id='+encodeURIComponent(CID);v.textContent='দেখুন ↗';
   row.append(v,btn('↑','ghost',async()=>{if(i>0)await swap(data[i-1],r)}),btn('↓','ghost',async()=>{if(i<data.length-1)await swap(r,data[i+1])}),
@@ -57,10 +58,64 @@ async function upd(id,p){const {error}=await sb.from('course_items').update(p).e
 async function swap(a,b){const {data}=await sb.from('course_items').select('id').eq('course_id',CID).order('sort_order').order('created_at');
  const ids=data.map(x=>x.id);const i=ids.indexOf(a.id),j=ids.indexOf(b.id);if(i<0||j<0)return;[ids[i],ids[j]]=[ids[j],ids[i]];
  for(let n=0;n<ids.length;n++){const {error}=await sb.from('course_items').update({sort_order:n+1}).eq('id',ids[n]);if(error){fail();return}}load()}
-async function del(r,f){if(f&&f.file_path){const {error}=await sb.storage.from('course-content').remove([f.file_path]);if(error){fail('ফাইল মোছা যায়নি।');return}}
+async function listAll(prefix){const out=[];for(let off=0;;off+=1000){const {data,error}=await sb.storage.from('course-content').list(prefix,{limit:1000,offset:off});if(error)throw error;for(const e of data||[]){if(e.id===null)out.push(...await listAll(prefix+'/'+e.name));else out.push(prefix+'/'+e.name)}if(!data||data.length<1000)break}return out}
+async function delBundle(prefix){const all=await listAll(prefix);for(let i=0;i<all.length;i+=100){const {error}=await sb.storage.from('course-content').remove(all.slice(i,i+100));if(error)throw error}}
+async function del(r,f){if(f&&f.bundle_path){try{note('ফোল্ডারের ফাইল মোছা হচ্ছে…',true);await delBundle(f.bundle_path)}catch(e){fail('ফোল্ডারের ফাইল মোছা যায়নি।');return}}
+ if(f&&f.file_path){const {error}=await sb.storage.from('course-content').remove([f.file_path]);if(error){fail('ফাইল মোছা যায়নি।');return}}
  const {error}=await sb.from('course_items').delete().eq('id',r.id);error?fail():(note('মুছে ফেলা হয়েছে।',true),load())}
+// ---- course (create inline when "new") ----
+async function ensureCourse(){if(!isNew())return null;const cn=$('#ct').value.trim(),paid=$('#cp').value==='paid',pr=parseInt($('#cr').value,10);
+ if(cn.length<2)throw new Error('নতুন কোর্সের নাম লিখুন।');if(paid&&!(pr>0))throw new Error('পেইড কোর্সের মূল্য লিখুন।');
+ const {data:cc,error:ce}=await sb.from('courses').insert({title:cn,is_paid:paid,price_bdt:paid?pr:null,is_active:true}).select('id').single();if(ce)throw ce;CID=cc.id;return cc.id}
+async function nextOrder(){const {data:mx}=await sb.from('course_items').select('sort_order').eq('course_id',CID).order('sort_order',{ascending:false}).limit(1);return ((mx&&mx[0]&&mx[0].sort_order)||0)+1}
+function done(title,madeCourse){note('✔ সফল! "'+title+'" যোগ হয়েছে। নিচের তালিকায় দেখুন।',true);$('#f').reset();sync();$('#bs').textContent='';$('#bp').hidden=true;BUN=null;
+ return (madeCourse?(async()=>{$('#ct').value='';await loadCourses(madeCourse)})():load()).then(()=>$('#l').scrollIntoView({behavior:'smooth'}))}
+// ---- folder (bundle) upload ----
+const BOK={html:'text/html',htm:'text/html',css:'text/css',js:'text/javascript',json:'application/json',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',svg:'image/svg+xml',ico:'image/x-icon',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf',otf:'font/otf'};
+let BUN=null;
+function scanFolder(files){const out={ok:[],skip:{type:0,hidden:0,big:0},unsafe:[],root:''};
+ for(const f of files){const p=(f.webkitRelativePath||f.name).split('/');out.root=out.root||p[0];const rel=p.slice(1).join('/');if(!rel)continue;
+  if(p.slice(1).some(x=>x.startsWith('.')||x.startsWith('_')||x.startsWith('~'))){out.skip.hidden++;continue}
+  const ext=(rel.split('.').pop()||'').toLowerCase();if(!BOK[ext]){out.skip.type++;continue}
+  if(f.size>52428800){out.skip.big++;continue}
+  if(!/^[A-Za-z0-9_.\/-]{1,200}$/.test(rel)||rel.includes('..')||rel.includes('//')){out.unsafe.push(rel);continue}
+  out.ok.push({rel,file:f,ext})}
+ return out}
+$('#bf').onchange=()=>{const fs=[...$('#bf').files];if(!fs.length){BUN=null;$('#bs').textContent='';return}
+ const sc=scanFolder(fs);const tot=sc.ok.reduce((a,x)=>a+x.file.size,0);
+ const entry=sc.ok.find(x=>x.rel==='index.html')||sc.ok.find(x=>!x.rel.includes('/')&&x.ext==='html')||sc.ok.find(x=>x.ext==='html');
+ BUN={sc,entry:entry&&entry.rel,id:crypto.randomUUID(),failed:[]};
+ if(!$('#t').value.trim())$('#t').value=sc.root.replace(/[_-]+/g,' ');
+ let t='📁 '+sc.root+' — উঠবে '+sc.ok.length.toLocaleString('bn-BD')+' টি ফাইল ('+(tot/1048576).toFixed(1)+' MB)। শুরুর পাতা: '+(entry?entry.rel:'নেই');
+ const sk=[];if(sc.skip.type)sk.push(sc.skip.type+' টি অন্য ধরনের ফাইল (যেমন .py/.txt)');if(sc.skip.hidden)sk.push(sc.skip.hidden+' টি লুকানো/_ দিয়ে শুরু');if(sc.skip.big)sk.push(sc.skip.big+' টি ৫০ MB-এর বেশি');
+ if(sk.length)t+='\nবাদ যাবে: '+sk.join(', ')+'।';
+ if(sc.unsafe.length)t+='\n⚠ নামে বাংলা/স্পেস/বিশেষ চিহ্ন থাকায় '+sc.unsafe.length+' টি ফাইল যাবে না (ইংরেজি নামে বদলে আবার বাছুন): '+sc.unsafe.slice(0,5).join(', ')+(sc.unsafe.length>5?'…':'');
+ if(!entry)t+='\n⚠ কোনো HTML পাতা নেই।';
+ $('#bs').style.whiteSpace='pre-line';$('#bs').textContent=t};
+async function putAll(list,prefix,onTick){const failed=[];let i=0,n=0;
+ async function one(x){for(let a=0;a<3;a++){const {error}=await sb.storage.from('course-content').upload(prefix+'/'+x.rel,x.file,{contentType:BOK[x.ext],upsert:true,cacheControl:'3600'});if(!error)return true;await new Promise(r=>setTimeout(r,500*(a+1)))}return false}
+ await Promise.all(Array.from({length:6},async()=>{while(i<list.length){const x=list[i++];if(!(await one(x)))failed.push(x);onTick(++n,list.length)}}));return failed}
+async function bundleSubmit(){
+ if(!BUN||!BUN.sc.ok.length){fail('ফোল্ডার বাছুন।');return}if(!BUN.entry){fail('ফোল্ডারে কোনো HTML পাতা নেই।');return}
+ const title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
+ BUSY=true;$('#go').disabled=true;$('#bp').hidden=false;let madeCourse=null;
+ try{madeCourse=await ensureCourse();
+  const prefix='bundles/'+BUN.id;const list=BUN.failed.length?BUN.failed:BUN.sc.ok;
+  const tick=(n,t)=>{$('#bpi').style.width=Math.round(n*100/t)+'%';$('#bpt').textContent=n.toLocaleString('bn-BD')+' / '+t.toLocaleString('bn-BD')+' ফাইল আপলোড হয়েছে… ট্যাব বন্ধ করবেন না।'};
+  note('আপলোড চলছে… ট্যাব বন্ধ করবেন না।',true);
+  const failed=await putAll(list,prefix,tick);BUN.failed=failed;
+  if(failed.length){fail(failed.length+' টি ফাইল আপলোড হয়নি (নেট সমস্যা হতে পারে)। আবার "যোগ করুন" চাপলে শুধু ওগুলোই আবার উঠবে।');$('#bpt').textContent='বাকি '+failed.length+' টি';if(madeCourse)await loadCourses(madeCourse);return}
+  const ord=await nextOrder();
+  const {data:it,error:e1}=await sb.from('course_items').insert({course_id:CID,title,kind:'bundle',is_preview:$('#pv').checked,sort_order:ord}).select('id').single();if(e1)throw e1;
+  const {error:e2}=await sb.from('course_item_files').insert({item_id:it.id,bundle_path:prefix,bundle_entry:BUN.entry});
+  if(e2){await sb.from('course_items').delete().eq('id',it.id);throw e2}
+  await done(title,madeCourse);
+ }catch(err){fail((err&&err.message&&/[অ-হ]/.test(err.message))?err.message:'যোগ করা যায়নি। ('+((err&&err.message)||'অজানা সমস্যা').slice(0,80)+')')}
+ finally{BUSY=false;$('#go').disabled=false}}
+// ---- single file / video ----
 $('#f').onsubmit=async e=>{e.preventDefault();if(BUSY)return;
-  const kind=$('#k').value,title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
+ const kind=$('#k').value;if(kind==='bundle'){await bundleSubmit();return}
+ const title=$('#t').value.trim();if(!title){fail('শিরোনাম লিখুন।');return}
  let yt=null,file=null,ext='';
  if(kind==='video'){yt=ytId($('#y').value);if(!yt){fail('YouTube লিংক সঠিক নয়। পুরো লিংকটি পেস্ট করুন।');return}}
  else{file=$('#fl').files[0];if(!file){fail('ফাইল বাছুন।');return}ext=(file.name.split('.').pop()||'').toLowerCase();
@@ -68,22 +123,16 @@ $('#f').onsubmit=async e=>{e.preventDefault();if(BUSY)return;
   if(file.size>52428800){fail('ফাইল ৫০ MB-এর বেশি।');return}}
  BUSY=true;$('#go').disabled=true;note('আপলোড হচ্ছে… অপেক্ষা করুন।',true);
  let path=null,madeCourse=null;
- try{
-  if(isNew()){const cn=$('#ct').value.trim(),paid=$('#cp').value==='paid',pr=parseInt($('#cr').value,10);
-   if(cn.length<2){BUSY=false;$('#go').disabled=false;fail('নতুন কোর্সের নাম লিখুন।');return}
-   if(paid&&!(pr>0)){BUSY=false;$('#go').disabled=false;fail('পেইড কোর্সের মূল্য লিখুন।');return}
-   const {data:cc,error:ce}=await sb.from('courses').insert({title:cn,is_paid:paid,price_bdt:paid?pr:null,is_active:true}).select('id').single();
-   if(ce)throw ce;madeCourse=cc.id;CID=cc.id}
+ try{madeCourse=await ensureCourse();
   if(file){path=CID+'/'+crypto.randomUUID()+'.'+ext;
    const {error}=await sb.storage.from('course-content').upload(path,file,{contentType:MIME[ext],upsert:false});if(error)throw error}
-  const {data:mx}=await sb.from('course_items').select('sort_order').eq('course_id',CID).order('sort_order',{ascending:false}).limit(1);
-  const ord=((mx&&mx[0]&&mx[0].sort_order)||0)+1;
+  const ord=await nextOrder();
   const {data:it,error:e1}=await sb.from('course_items').insert({course_id:CID,title,kind,is_preview:$('#pv').checked,sort_order:ord}).select('id').single();
   if(e1)throw e1;
   const {error:e2}=await sb.from('course_item_files').insert(yt?{item_id:it.id,youtube_id:yt}:{item_id:it.id,file_path:path});
   if(e2){await sb.from('course_items').delete().eq('id',it.id);throw e2}
-  note('✔ সফল! "'+title+'" যোগ হয়েছে। নিচের তালিকায় দেখুন।',true);$('#f').reset();sync();if(madeCourse){$('#ct').value='';await loadCourses(madeCourse)}else await load();$('#l').scrollIntoView({behavior:'smooth'})
- }catch(err){if(path)await sb.storage.from('course-content').remove([path]);if(madeCourse){await sb.from('courses').delete().eq('id',madeCourse);CID=''}fail('যোগ করা যায়নি। ('+((err&&err.message)||'অজানা সমস্যা').slice(0,80)+')')}
+  await done(title,madeCourse);
+ }catch(err){if(path)await sb.storage.from('course-content').remove([path]);if(madeCourse){await sb.from('courses').delete().eq('id',madeCourse);CID=''}fail((err&&err.message&&/[অ-হ]/.test(err.message))?err.message:'যোগ করা যায়নি। ('+((err&&err.message)||'অজানা সমস্যা').slice(0,80)+')')}
  finally{BUSY=false;$('#go').disabled=false}};
 (async()=>{const me=await requireLogin();if(!me)return;if(me.role!=='admin'||me.status!=='active'){location.href='dashboard.html';return}await loadCourses()})();
 </script></body></html>

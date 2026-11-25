@@ -4,7 +4,7 @@
 <header class="top"><div class="wrap"><a class="brand" href="index.html"><img src="assets/logo-clear.png" alt="Biotech Home"></a>
 <nav class="nav"><a class="hide-m" href="index.html#courses">কোর্স</a><a class="hide-m" href="index.html#library">লাইব্রেরি</a><a class="hide-m" href="index.html#merit">মেধাতালিকা</a><a class="hide-m" href="letters.html">খোলা চিঠি</a><button class="theme" id="theme" aria-label="থিম পরিবর্তন">🌙</button><span id="navauth"><a class="btn sm" href="login.html">লগইন</a></span></nav></div></header>
 
-<main class="wrap" style="padding:20px 20px 40px;max-width:760px"><div class="pagehead"><h1>💬 খোলা চিঠি</h1><p class="sub">লগইন ছাড়াই যে কেউ মতামত বা প্রশ্ন লিখতে পারবেন। পাঠানোর সাথে সাথেই চিঠিটি সবার জন্য এখানে দেখা যাবে।</p></div>
+<main class="wrap" style="padding:20px 20px 40px;max-width:760px"><div class="pagehead"><h1>💬 খোলা চিঠি</h1><p class="sub">লগইন ছাড়াই যে কেউ মতামত বা প্রশ্ন লিখতে পারবেন। চিঠি শুধু শিক্ষক দেখবেন; তিনি প্রকাশ করলে তবেই এখানে সবাই দেখতে পাবেন।</p></div>
 <div class="card"><form id="f"><label>আপনার নাম</label><input id="nm" maxlength="60"><label>আপনার মতামত</label><textarea id="bd" maxlength="1000"></textarea><div class="hint">সর্বোচ্চ ১০০০ অক্ষর</div>
 <input class="hp" id="hp" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn full" id="go">চিঠি পাঠান</button><div id="m" class="msg"></div></form></div>
 <h2 style="margin:28px 0 12px">প্রকাশিত চিঠি</h2><div id="list"></div></main>
@@ -18,5 +18,5 @@ $('#f').onsubmit=async e=>{e.preventDefault();const m=$('#m'),btn=$('#go'),n=$('
  try{if(Date.now()-(+localStorage.getItem('bh-last')||0)<30000)return say(m,'একটু পরে আবার পাঠান।')}catch(_){}
  btn.disabled=true;const {error}=await sb.from('open_letters').insert({author_name:n,body:t},{returning:'minimal'});btn.disabled=false;
  if(error)return say(m,'পাঠানো যায়নি। পরে আবার চেষ্টা করুন।');try{localStorage.setItem('bh-last',Date.now())}catch(_){}
- say(m,'ধন্যবাদ! আপনার চিঠি প্রকাশিত হয়েছে।',true);$('#f').reset();show()};
+ say(m,'ধন্যবাদ! আপনার চিঠি শিক্ষকের কাছে পৌঁছেছে।',true);$('#f').reset();show()};
 </script></body></html>
